@@ -5,18 +5,17 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 
-from framecloud.np.core import PointCloud
 
 
 class NumpyIO:
-    """Implementation of NumPy file format (.npy, .npz) I/O operations for numpy PointCloud."""
+    """Mixin providing NumPy file format (.npy, .npz) I/O operations for numpy PointCloud."""
 
-    @staticmethod
-    def from_numpy_file(
+    @classmethod
+    def from_numpy_file(cls, 
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
-    ) -> PointCloud:
+    ):
         """Load a PointCloud from a NumPy .npy file.
 
         Args:
@@ -56,13 +55,12 @@ class NumpyIO:
         for i, name in enumerate(attribute_names):
             if name not in ["X", "Y", "Z"]:
                 attributes[name] = array[:, i]
-        pc = PointCloud(points=points, attributes=attributes)
+        pc = cls(points=points, attributes=attributes)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
-    @staticmethod
     def to_numpy_file(
-        point_cloud: PointCloud,
+        self,
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
@@ -70,7 +68,6 @@ class NumpyIO:
         """Save a PointCloud to a NumPy .npy file.
 
         Args:
-            point_cloud (PointCloud): The PointCloud object to save.
             file_path (Path): Path to the output NumPy .npy file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
@@ -81,23 +78,23 @@ class NumpyIO:
         arrays = []
         for name in attribute_names:
             if name == "X":
-                arrays.append(point_cloud.points[:, 0])
+                arrays.append(self.points[:, 0])
             elif name == "Y":
-                arrays.append(point_cloud.points[:, 1])
+                arrays.append(self.points[:, 1])
             elif name == "Z":
-                arrays.append(point_cloud.points[:, 2])
+                arrays.append(self.points[:, 2])
             else:
-                arrays.append(point_cloud.attributes[name])
+                arrays.append(self.attributes[name])
         combined_array = np.vstack(arrays).T.astype(dtype)
         np.save(file_path, combined_array)
         logger.info(f"PointCloud saved to {file_path} successfully.")
 
-    @staticmethod
-    def from_npz_file(
+    @classmethod
+    def from_npz_file(cls, 
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
-    ) -> PointCloud:
+    ):
         """Load a PointCloud from a NumPy .npz file.
 
         Args:
@@ -139,13 +136,12 @@ class NumpyIO:
         for i, name in enumerate(attribute_names):
             if name not in ["X", "Y", "Z"]:
                 attributes[name] = array[:, i]
-        pc = PointCloud(points=points, attributes=attributes)
+        pc = cls(points=points, attributes=attributes)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
-    @staticmethod
     def to_npz_file(
-        point_cloud: PointCloud,
+        self,
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
@@ -153,7 +149,6 @@ class NumpyIO:
         """Save a PointCloud to a NumPy .npz file.
 
         Args:
-            point_cloud (PointCloud): The PointCloud object to save.
             file_path (Path): Path to the output NumPy .npz file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
@@ -164,12 +159,12 @@ class NumpyIO:
         arrays = {}
         for name in attribute_names:
             if name == "X":
-                arrays[name] = point_cloud.points[:, 0].astype(dtype)
+                arrays[name] = self.points[:, 0].astype(dtype)
             elif name == "Y":
-                arrays[name] = point_cloud.points[:, 1].astype(dtype)
+                arrays[name] = self.points[:, 1].astype(dtype)
             elif name == "Z":
-                arrays[name] = point_cloud.points[:, 2].astype(dtype)
+                arrays[name] = self.points[:, 2].astype(dtype)
             else:
-                arrays[name] = point_cloud.attributes[name].astype(dtype)
+                arrays[name] = self.attributes[name].astype(dtype)
         np.savez(file_path, **arrays)
         logger.info(f"PointCloud saved to {file_path} successfully.")

@@ -3,6 +3,11 @@ import pandas as pd
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator
 
+from framecloud.pd.binary_io import BinaryIO
+from framecloud.pd.las_io import LasIO
+from framecloud.pd.numpy_io import NumpyIO
+from framecloud.pd.parquet_io import ParquetIO
+
 
 class AttributeExistsError(Exception):
     """Custom exception raised when an attribute already exists in the point cloud."""
@@ -16,7 +21,7 @@ class ArrayShapeError(ValueError):
     info: str
 
 
-class PointCloud(BaseModel):
+class PointCloud(LasIO, ParquetIO, BinaryIO, NumpyIO, BaseModel):
     """A point cloud representation using pandas DataFrame.
 
     Attributes:

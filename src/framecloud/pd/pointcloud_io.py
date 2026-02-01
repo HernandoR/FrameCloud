@@ -28,7 +28,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        return LasIO.from_las(file_path)
+        return PointCloud.from_las(file_path)
 
     @staticmethod
     def to_las(point_cloud: PointCloud, file_path: Path | str):
@@ -38,7 +38,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
             point_cloud (PointCloud): The PointCloud object to save.
             file_path (Path): Path to the output LAS file.
         """
-        return LasIO.to_las(point_cloud, file_path)
+        return point_cloud.to_las(file_path)
 
     @staticmethod
     def from_parquet(
@@ -54,7 +54,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        return ParquetIO.from_parquet(file_path, position_cols)
+        return PointCloud.from_parquet(file_path, position_cols)
 
     @staticmethod
     def to_parquet(
@@ -67,7 +67,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
             file_path (Path): Path to the output Parquet file.
             position_cols (list[str]): List of column names for point positions. Defaults to ["X", "Y", "Z"].
         """
-        return ParquetIO.to_parquet(point_cloud, file_path, position_cols)
+        return point_cloud.to_parquet(file_path, position_cols)
 
     @staticmethod
     def from_binary_buffer(
@@ -84,7 +84,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        return BinaryIO.from_binary_buffer(bytes_buffer, attribute_names, dtype)
+        return PointCloud.from_binary_buffer(bytes_buffer, attribute_names, dtype)
 
     @staticmethod
     def to_binary_buffer(
@@ -101,7 +101,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
         Returns:
             bytes: Bytes buffer containing the binary data.
         """
-        return BinaryIO.to_binary_buffer(point_cloud, attribute_names, dtype)
+        return point_cloud.to_binary_buffer(attribute_names, dtype)
 
     @staticmethod
     def from_binary_file(
@@ -118,7 +118,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        return BinaryIO.from_binary_file(file_path, attribute_names, dtype)
+        return PointCloud.from_binary_file(file_path, attribute_names, dtype)
 
     @staticmethod
     def to_binary_file(
@@ -134,7 +134,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
             file_path (Path): Path to the output binary file ending with .bin.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
-        return BinaryIO.to_binary_file(point_cloud, file_path, attribute_names, dtype)
+        return point_cloud.to_binary_file(file_path, attribute_names, dtype)
 
     @staticmethod
     def from_numpy_file(
@@ -151,7 +151,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        return NumpyIO.from_numpy_file(file_path, attribute_names, dtype)
+        return PointCloud.from_numpy_file(file_path, attribute_names, dtype)
 
     @staticmethod
     def to_numpy_file(
@@ -167,7 +167,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
             file_path (Path): Path to the output NumPy .npy file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
-        return NumpyIO.to_numpy_file(point_cloud, file_path, attribute_names, dtype)
+        return point_cloud.to_numpy_file(file_path, attribute_names, dtype)
 
     @staticmethod
     def from_npz_file(
@@ -184,7 +184,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        return NumpyIO.from_npz_file(file_path, attribute_names, dtype)
+        return PointCloud.from_npz_file(file_path, attribute_names, dtype)
 
     @staticmethod
     def to_npz_file(
@@ -200,7 +200,7 @@ class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
             file_path (Path): Path to the output NumPy .npz file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
-        return NumpyIO.to_npz_file(point_cloud, file_path, attribute_names, dtype)
+        return point_cloud.to_npz_file(file_path, attribute_names, dtype)
 
     @classmethod
     def from_file(

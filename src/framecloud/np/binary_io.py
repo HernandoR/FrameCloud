@@ -5,22 +5,21 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 
-from framecloud.np.core import PointCloud
 
 
 class BinaryIO:
-    """Implementation of binary buffer/file I/O operations for numpy PointCloud."""
+    """Mixin providing binary buffer/file I/O operations for numpy PointCloud."""
 
-    @staticmethod
-    def from_binary_buffer(
+    @classmethod
+    def from_binary_buffer(cls, 
         bytes_buffer: bytes,
         attribute_names: list[str] = None,
         dtype=np.float32,
-    ) -> PointCloud:
-        """Load a PointCloud from a binary buffer.
+    ):
+        """Load a PointCloud from a NumPy binary file.
 
         Args:
-            bytes_buffer (bytes): Bytes buffer containing the binary data.
+            bytes_buffer (bytes): Bytes buffer containing the NumPy binary data.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         Returns:
             PointCloud: The loaded PointCloud object.
@@ -65,23 +64,21 @@ class BinaryIO:
         for i, name in enumerate(attribute_names):
             if name not in ["X", "Y", "Z"]:
                 attributes[name] = array[:, i]
-        pc = PointCloud(points=points, attributes=attributes)
+        pc = cls(points=points, attributes=attributes)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
-    @staticmethod
     def to_binary_buffer(
-        point_cloud: PointCloud,
+        self,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ) -> bytes:
-        """Save a PointCloud to a binary buffer.
+        """Save a PointCloud to a NumPy binary buffer.
 
         Args:
-            point_cloud (PointCloud): The PointCloud object to save.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         Returns:
-            bytes: Bytes buffer containing the binary data.
+            bytes: Bytes buffer containing the NumPy binary data.
         """
         if attribute_names is None:
             attribute_names = ["X", "Y", "Z"]
@@ -90,49 +87,47 @@ class BinaryIO:
         arrays = []
         for name in attribute_names:
             if name == "X":
-                arrays.append(point_cloud.points[:, 0])
+                arrays.append(self.points[:, 0])
             elif name == "Y":
-                arrays.append(point_cloud.points[:, 1])
+                arrays.append(self.points[:, 1])
             elif name == "Z":
-                arrays.append(point_cloud.points[:, 2])
+                arrays.append(self.points[:, 2])
             else:
-                arrays.append(point_cloud.attributes[name])
+                arrays.append(self.attributes[name])
         combined_array = np.vstack(arrays).T.astype(dtype)
         bytes_buffer = combined_array.tobytes()
         logger.info("PointCloud saved to binary buffer successfully.")
         return bytes_buffer
 
-    @staticmethod
-    def from_binary_file(
+    @classmethod
+    def from_binary_file(cls, 
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
-    ) -> PointCloud:
-        """Load a PointCloud from a binary file.
+    ):
+        """Load a PointCloud from a NumPy binary file.
 
         Args:
-            file_path (Path): Path to the binary file ending with .bin.
+            file_path (Path): Path to the NumPy binary file end with .bin.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         Returns:
             PointCloud: The loaded PointCloud object.
         """
         buffer = Path(file_path).read_bytes()
-        return BinaryIO.from_binary_buffer(buffer, attribute_names, dtype)
+        return cls.from_binary_buffer(buffer, attribute_names, dtype)
 
-    @staticmethod
     def to_binary_file(
-        point_cloud: PointCloud,
+        self,
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
-        """Save a PointCloud to a binary file.
+        """Save a PointCloud to a NumPy binary file.
 
         Args:
-            point_cloud (PointCloud): The PointCloud object to save.
-            file_path (Path): Path to the output binary file ending with .bin.
+            file_path (Path): Path to the output NumPy binary file end with .bin.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
-        bytes_buffer = BinaryIO.to_binary_buffer(point_cloud, attribute_names, dtype)
+        bytes_buffer = self.to_binary_buffer(attribute_names, dtype)
         Path(file_path).write_bytes(bytes_buffer)
         logger.info(f"PointCloud saved to {file_path} successfully.")

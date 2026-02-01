@@ -6,18 +6,17 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from framecloud.pd.core import PointCloud
 
 
 class NumpyIO:
-    """Implementation of NumPy file format (.npy, .npz) I/O operations for pandas PointCloud."""
+    """Mixin providing NumPy file format (.npy, .npz) I/O operations for pandas PointCloud."""
 
-    @staticmethod
-    def from_numpy_file(
+    @classmethod
+    def from_numpy_file(cls, 
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
-    ) -> PointCloud:
+    ):
         """Load a PointCloud from a NumPy .npy file.
 
         Args:
@@ -38,13 +37,12 @@ class NumpyIO:
         logger.info(f"Loading PointCloud from NumPy file: {file_path}")
         data = {name: array[:, i] for i, name in enumerate(attribute_names)}
         df = pd.DataFrame(data)
-        pc = PointCloud(data=df)
+        pc = cls(data=df)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
-    @staticmethod
     def to_numpy_file(
-        point_cloud: PointCloud,
+        self,
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
@@ -52,7 +50,6 @@ class NumpyIO:
         """Save a PointCloud to a NumPy .npy file.
 
         Args:
-            point_cloud (PointCloud): The PointCloud object to save.
             file_path (Path): Path to the output NumPy .npy file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
@@ -62,8 +59,8 @@ class NumpyIO:
         logger.info(f"Saving PointCloud to NumPy file: {file_path}")
         arrays = []
         for name in attribute_names:
-            if name in point_cloud.data.columns:
-                arrays.append(point_cloud.data[name].to_numpy())
+            if name in self.data.columns:
+                arrays.append(self.data[name].to_numpy())
             else:
                 logger.error(f"Attribute '{name}' not found in point cloud.")
                 raise ValueError(f"Attribute '{name}' not found in point cloud.")
@@ -72,12 +69,12 @@ class NumpyIO:
         np.save(file_path, combined_array)
         logger.info(f"PointCloud saved to {file_path} successfully.")
 
-    @staticmethod
-    def from_npz_file(
+    @classmethod
+    def from_npz_file(cls, 
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
-    ) -> PointCloud:
+    ):
         """Load a PointCloud from a NumPy .npz file.
 
         Args:
@@ -103,13 +100,12 @@ class NumpyIO:
 
         data = {name: npz_data[name].astype(dtype) for name in attribute_names}
         df = pd.DataFrame(data)
-        pc = PointCloud(data=df)
+        pc = cls(data=df)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
-    @staticmethod
     def to_npz_file(
-        point_cloud: PointCloud,
+        self,
         file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
@@ -117,7 +113,6 @@ class NumpyIO:
         """Save a PointCloud to a NumPy .npz file.
 
         Args:
-            point_cloud (PointCloud): The PointCloud object to save.
             file_path (Path): Path to the output NumPy .npz file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
@@ -127,8 +122,8 @@ class NumpyIO:
         logger.info(f"Saving PointCloud to NumPy .npz file: {file_path}")
         arrays = {}
         for name in attribute_names:
-            if name in point_cloud.data.columns:
-                arrays[name] = point_cloud.data[name].to_numpy().astype(dtype)
+            if name in self.data.columns:
+                arrays[name] = self.data[name].to_numpy().astype(dtype)
             else:
                 logger.error(f"Attribute '{name}' not found in point cloud.")
                 raise ValueError(f"Attribute '{name}' not found in point cloud.")

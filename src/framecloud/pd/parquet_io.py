@@ -2,20 +2,20 @@
 
 from pathlib import Path
 
+import pandas as pd
 import polars as pl
 from loguru import logger
 
-from framecloud.pd.core import PointCloud
 
 
 class ParquetIO:
-    """Implementation of Parquet file I/O operations for pandas PointCloud."""
+    """Mixin providing Parquet file I/O operations for pandas PointCloud."""
 
-    @staticmethod
-    def from_parquet(
+    @classmethod
+    def from_parquet(cls, 
         file_path: Path | str,
         position_cols: list[str] = None,
-    ) -> PointCloud:
+    ):
         """Load a PointCloud from a Parquet file.
 
         Args:
@@ -41,18 +41,16 @@ class ParquetIO:
                 }
             )
 
-        pc = PointCloud(data=df)
+        pc = cls(data=df)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
-    @staticmethod
     def to_parquet(
-        point_cloud: PointCloud, file_path: Path | str, position_cols: list[str] = None
+        self, file_path: Path | str, position_cols: list[str] = None
     ):
         """Save a PointCloud to a Parquet file.
 
         Args:
-            point_cloud (PointCloud): The PointCloud object to save.
             file_path (Path): Path to the output Parquet file.
             position_cols (list[str]): List of column names for point positions. Defaults to ["X", "Y", "Z"].
         """
@@ -60,7 +58,7 @@ class ParquetIO:
             position_cols = ["X", "Y", "Z"]
         logger.info(f"Saving PointCloud to Parquet file: {file_path}")
 
-        df = point_cloud.data.copy()
+        df = self.data.copy()
         # Rename X, Y, Z to custom position columns if needed
         if position_cols != ["X", "Y", "Z"]:
             df = df.rename(

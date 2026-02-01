@@ -7,14 +7,13 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from framecloud.pd.core import PointCloud
 
 
 class LasIO:
-    """Implementation of LAS/LAZ file I/O operations for pandas PointCloud."""
+    """Mixin providing LAS/LAZ file I/O operations for pandas PointCloud."""
 
-    @staticmethod
-    def from_las(file_path: Path | str) -> PointCloud:
+    @classmethod
+    def from_las(cls, file_path: Path | str):
         """Load a PointCloud from a LAS/LAZ file.
 
         Args:
@@ -37,16 +36,14 @@ class LasIO:
                 data[dimension.name] = np.array(las[dimension.name])
 
         df = pd.DataFrame(data)
-        pc = PointCloud(data=df)
+        pc = cls(data=df)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
-    @staticmethod
-    def to_las(point_cloud: PointCloud, file_path: Path | str):
+    def to_las(self, file_path: Path | str):
         """Save a PointCloud to a LAS file.
 
         Args:
-            point_cloud (PointCloud): The PointCloud object to save.
             file_path (Path): Path to the output LAS file.
         """
         file_path = str(file_path)
@@ -54,12 +51,12 @@ class LasIO:
         header = laspy.LasHeader(point_format=7, version="1.4")
         las = laspy.LasData(header)
 
-        las.x = point_cloud.data["X"].to_numpy()
-        las.y = point_cloud.data["Y"].to_numpy()
-        las.z = point_cloud.data["Z"].to_numpy()
+        las.x = self.data["X"].to_numpy()
+        las.y = self.data["Y"].to_numpy()
+        las.z = self.data["Z"].to_numpy()
 
-        for attr_name in point_cloud.attribute_names:
-            las[attr_name] = point_cloud.data[attr_name].to_numpy()
+        for attr_name in self.attribute_names:
+            las[attr_name] = self.data[attr_name].to_numpy()
 
         las.write(file_path)
         logger.info(f"PointCloud saved to {file_path} successfully.")

@@ -2,6 +2,11 @@ import numpy as np
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from framecloud.np.binary_io import BinaryIO
+from framecloud.np.las_io import LasIO
+from framecloud.np.numpy_io import NumpyIO
+from framecloud.np.parquet_io import ParquetIO
+
 
 class AttributeExistsError(Exception):
     """Custom exception raised when an attribute already exists in the point cloud."""
@@ -15,7 +20,7 @@ class ArrayShapeError(ValueError):
     info: str
 
 
-class PointCloud(BaseModel):
+class PointCloud(LasIO, ParquetIO, BinaryIO, NumpyIO, BaseModel):
     """A simple point cloud representation using numpy arrays.
 
     Attributes:
