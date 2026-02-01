@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from framecloud.np.core import PointCloud
-from framecloud.np.pointcloud_io import PointCloudIO
 
 
 class TestPointCloudIOLAS:
@@ -20,8 +19,8 @@ class TestPointCloudIOLAS:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.las"
-            PointCloudIO.to_las(pc, file_path)
-            loaded_pc = PointCloudIO.from_las(file_path)
+            pc.to_las(file_path)
+            loaded_pc = PointCloud.from_las(file_path)
 
             assert loaded_pc.num_points == pc.num_points
             np.testing.assert_array_almost_equal(loaded_pc.points, pc.points, decimal=2)
@@ -38,8 +37,8 @@ class TestPointCloudIOLAS:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.las"
-            PointCloudIO.to_las(pc, file_path)
-            loaded_pc = PointCloudIO.from_las(file_path)
+            pc.to_las(file_path)
+            loaded_pc = PointCloud.from_las(file_path)
 
             assert loaded_pc.num_points == pc.num_points
             assert "intensity" in loaded_pc.attribute_names
@@ -55,8 +54,8 @@ class TestPointCloudIOParquet:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.parquet"
-            PointCloudIO.to_parquet(pc, file_path)
-            loaded_pc = PointCloudIO.from_parquet(file_path)
+            pc.to_parquet(file_path)
+            loaded_pc = PointCloud.from_parquet(file_path)
 
             assert loaded_pc.num_points == pc.num_points
             np.testing.assert_array_almost_equal(loaded_pc.points, pc.points)
@@ -73,8 +72,8 @@ class TestPointCloudIOParquet:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.parquet"
-            PointCloudIO.to_parquet(pc, file_path)
-            loaded_pc = PointCloudIO.from_parquet(file_path)
+            pc.to_parquet(file_path)
+            loaded_pc = PointCloud.from_parquet(file_path)
 
             assert loaded_pc.num_points == pc.num_points
             assert "colors" in loaded_pc.attribute_names
@@ -88,8 +87,8 @@ class TestPointCloudIOParquet:
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.parquet"
             position_cols = ["px", "py", "pz"]
-            PointCloudIO.to_parquet(pc, file_path, position_cols=position_cols)
-            loaded_pc = PointCloudIO.from_parquet(
+            pc.to_parquet(file_path, position_cols=position_cols)
+            loaded_pc = PointCloud.from_parquet(
                 file_path, position_cols=position_cols
             )
 
@@ -105,8 +104,8 @@ class TestPointCloudIOBinary:
         points = np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], dtype=np.float32)
         pc = PointCloud(points=points)
 
-        buffer = PointCloudIO.to_binary_buffer(pc)
-        loaded_pc = PointCloudIO.from_binary_buffer(buffer)
+        buffer = pc.to_binary_buffer()
+        loaded_pc = PointCloud.from_binary_buffer(buffer)
 
         assert loaded_pc.num_points == pc.num_points
         np.testing.assert_array_almost_equal(loaded_pc.points, pc.points)
@@ -118,8 +117,8 @@ class TestPointCloudIOBinary:
         pc = PointCloud(points=points, attributes={"intensity": intensities})
 
         attribute_names = ["X", "Y", "Z", "intensity"]
-        buffer = PointCloudIO.to_binary_buffer(pc, attribute_names=attribute_names)
-        loaded_pc = PointCloudIO.from_binary_buffer(
+        buffer = pc.to_binary_buffer(attribute_names=attribute_names)
+        loaded_pc = PointCloud.from_binary_buffer(
             buffer, attribute_names=attribute_names
         )
 
@@ -133,8 +132,8 @@ class TestPointCloudIOBinary:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.bin"
-            PointCloudIO.to_binary_file(pc, file_path)
-            loaded_pc = PointCloudIO.from_binary_file(file_path)
+            pc.to_binary_file(file_path)
+            loaded_pc = PointCloud.from_binary_file(file_path)
 
             assert loaded_pc.num_points == pc.num_points
             np.testing.assert_array_almost_equal(loaded_pc.points, pc.points)
@@ -143,7 +142,7 @@ class TestPointCloudIOBinary:
         """Test binary buffer with invalid attribute names."""
         buffer = b"invalid"
         with pytest.raises(ValueError, match="Attribute names must include"):
-            PointCloudIO.from_binary_buffer(buffer, attribute_names=["A", "B", "C"])
+            PointCloud.from_binary_buffer(buffer, attribute_names=["A", "B", "C"])
 
 
 class TestPointCloudIONumPy:
@@ -156,8 +155,8 @@ class TestPointCloudIONumPy:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.npy"
-            PointCloudIO.to_numpy_file(pc, file_path)
-            loaded_pc = PointCloudIO.from_numpy_file(file_path)
+            pc.to_numpy_file(file_path)
+            loaded_pc = PointCloud.from_numpy_file(file_path)
 
             assert loaded_pc.num_points == pc.num_points
             np.testing.assert_array_almost_equal(loaded_pc.points, pc.points)
@@ -171,8 +170,8 @@ class TestPointCloudIONumPy:
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.npy"
             attribute_names = ["X", "Y", "Z", "intensity"]
-            PointCloudIO.to_numpy_file(pc, file_path, attribute_names=attribute_names)
-            loaded_pc = PointCloudIO.from_numpy_file(
+            pc.to_numpy_file(file_path, attribute_names=attribute_names)
+            loaded_pc = PointCloud.from_numpy_file(
                 file_path, attribute_names=attribute_names
             )
 
@@ -190,8 +189,8 @@ class TestPointCloudIONPZ:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.npz"
-            PointCloudIO.to_npz_file(pc, file_path)
-            loaded_pc = PointCloudIO.from_npz_file(file_path)
+            pc.to_npz_file(file_path)
+            loaded_pc = PointCloud.from_npz_file(file_path)
 
             assert loaded_pc.num_points == pc.num_points
             np.testing.assert_array_almost_equal(loaded_pc.points, pc.points)
@@ -205,8 +204,8 @@ class TestPointCloudIONPZ:
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.npz"
             attribute_names = ["X", "Y", "Z", "intensities"]
-            PointCloudIO.to_npz_file(pc, file_path, attribute_names=attribute_names)
-            loaded_pc = PointCloudIO.from_npz_file(
+            pc.to_npz_file(file_path, attribute_names=attribute_names)
+            loaded_pc = PointCloud.from_npz_file(
                 file_path, attribute_names=attribute_names
             )
 
@@ -220,92 +219,12 @@ class TestPointCloudIONPZ:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "test.npz"
-            PointCloudIO.to_npz_file(pc, file_path)
+            pc.to_npz_file(file_path)
 
             # Try loading with attributes that don't exist
             with pytest.raises(ValueError, match="not found in .npz file"):
-                PointCloudIO.from_npz_file(
+                PointCloud.from_npz_file(
                     file_path, attribute_names=["X", "Y", "Z", "nonexistent"]
                 )
 
 
-class TestPointCloudIOGeneric:
-    """Test generic from_file and to_file methods."""
-
-    def test_from_file_infers_las(self):
-        """Test that from_file infers LAS format."""
-        points = np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]])
-        pc = PointCloud(points=points)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = Path(tmpdir) / "test.las"
-            PointCloudIO.to_file(pc, file_path)
-            loaded_pc = PointCloudIO.from_file(file_path)
-
-            assert loaded_pc.num_points == pc.num_points
-
-    def test_from_file_infers_parquet(self):
-        """Test that from_file infers Parquet format."""
-        points = np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]])
-        pc = PointCloud(points=points)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = Path(tmpdir) / "test.parquet"
-            PointCloudIO.to_file(pc, file_path)
-            loaded_pc = PointCloudIO.from_file(file_path)
-
-            assert loaded_pc.num_points == pc.num_points
-
-    def test_from_file_infers_npy(self):
-        """Test that from_file infers NPY format."""
-        points = np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], dtype=np.float32)
-        pc = PointCloud(points=points)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = Path(tmpdir) / "test.npy"
-            PointCloudIO.to_file(pc, file_path)
-            loaded_pc = PointCloudIO.from_file(file_path)
-
-            assert loaded_pc.num_points == pc.num_points
-
-    def test_from_file_infers_npz(self):
-        """Test that from_file infers NPZ format."""
-        points = np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], dtype=np.float32)
-        pc = PointCloud(points=points)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = Path(tmpdir) / "test.npz"
-            PointCloudIO.to_file(pc, file_path)
-            loaded_pc = PointCloudIO.from_file(file_path)
-
-            assert loaded_pc.num_points == pc.num_points
-
-    def test_from_file_explicit_type(self):
-        """Test from_file with explicit file type."""
-        points = np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], dtype=np.float32)
-        pc = PointCloud(points=points)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = Path(tmpdir) / "test.npz"
-            PointCloudIO.to_file(pc, file_path, file_type=".npz")
-            loaded_pc = PointCloudIO.from_file(file_path, file_type=".npz")
-
-            assert loaded_pc.num_points == pc.num_points
-
-    def test_unsupported_file_type(self):
-        """Test that unsupported file type raises error."""
-        points = np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]])
-        pc = PointCloud(points=points)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = Path(tmpdir) / "test.xyz"
-            with pytest.raises(ValueError, match="Unsupported file type"):
-                PointCloudIO.to_file(pc, file_path)
-
-    def test_from_file_unsupported_type(self):
-        """Test that loading unsupported file type raises error."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            file_path = Path(tmpdir) / "test.xyz"
-            file_path.write_text("dummy")
-            with pytest.raises(ValueError, match="Unsupported file type"):
-                PointCloudIO.from_file(file_path)

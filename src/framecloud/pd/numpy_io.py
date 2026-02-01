@@ -6,13 +6,16 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
+from framecloud._io_utils import default_attribute_names
 
 
 class NumpyIO:
     """Mixin providing NumPy file format (.npy, .npz) I/O operations for pandas PointCloud."""
 
     @classmethod
-    def from_numpy_file(cls, file_path: Path | str,
+    def from_numpy_file(
+        cls,
+        file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
@@ -21,13 +24,11 @@ class NumpyIO:
         Args:
             file_path (Path): Path to the NumPy .npy file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
-
         Returns:
             PointCloud: The loaded PointCloud object.
         """
         array = np.load(file_path).astype(dtype)
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
+        attribute_names = default_attribute_names(attribute_names)
 
         if not all(col in attribute_names for col in ["X", "Y", "Z"]):
             logger.error(f"Attribute names must include 'X', 'Y', and 'Z'.")
@@ -52,8 +53,7 @@ class NumpyIO:
             file_path (Path): Path to the output NumPy .npy file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
+        attribute_names = default_attribute_names(attribute_names)
 
         logger.info(f"Saving PointCloud to NumPy file: {file_path}")
         arrays = []
@@ -69,7 +69,9 @@ class NumpyIO:
         logger.info(f"PointCloud saved to {file_path} successfully.")
 
     @classmethod
-    def from_npz_file(cls, file_path: Path | str,
+    def from_npz_file(
+        cls,
+        file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
@@ -78,13 +80,11 @@ class NumpyIO:
         Args:
             file_path (Path): Path to the NumPy .npz file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
-
         Returns:
             PointCloud: The loaded PointCloud object.
         """
         npz_data = np.load(file_path)
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
+        attribute_names = default_attribute_names(attribute_names)
 
         if not all(col in attribute_names for col in ["X", "Y", "Z"]):
             logger.error(f"Attribute names must include 'X', 'Y', and 'Z'.")
@@ -114,8 +114,7 @@ class NumpyIO:
             file_path (Path): Path to the output NumPy .npz file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
+        attribute_names = default_attribute_names(attribute_names)
 
         logger.info(f"Saving PointCloud to NumPy .npz file: {file_path}")
         arrays = {}

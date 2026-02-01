@@ -5,13 +5,21 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 
+from framecloud._io_utils import (
+    default_attribute_names,
+    extract_attributes_dict,
+    extract_xyz_arrays,
+    validate_xyz_in_attribute_names,
+)
 
 
 class NumpyIO:
     """Mixin providing NumPy file format (.npy, .npz) I/O operations for numpy PointCloud."""
 
     @classmethod
-    def from_numpy_file(cls, file_path: Path | str,
+    def from_numpy_file(
+        cls,
+        file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
@@ -24,36 +32,13 @@ class NumpyIO:
             PointCloud: The loaded PointCloud object.
         """
         array = np.load(file_path).astype(dtype)
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
-
-        # [X, Y, Z, ...] must in the attribute_names
-        point_attrs_pos = {}
-        for i, name in enumerate(attribute_names):
-            if name in ["X", "Y", "Z"]:
-                point_attrs_pos[name] = i
-        if len(point_attrs_pos) < 3:
-            logger.error(
-                f"""Attribute names must include 'X', 'Y', and 'Z', were given: {attribute_names}
-                found positions: {point_attrs_pos}"""
-            )
-            raise ValueError(
-                f"""Attribute names must include 'X', 'Y', and 'Z', were given: {attribute_names}
-                found positions: {point_attrs_pos}"""
-            )
+        attribute_names = default_attribute_names(attribute_names)
+        point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
 
         logger.info(f"Loading PointCloud from NumPy file: {file_path}")
-        points = np.vstack(
-            (
-                array[:, point_attrs_pos["X"]],
-                array[:, point_attrs_pos["Y"]],
-                array[:, point_attrs_pos["Z"]],
-            )
-        ).T
-        attributes = {}
-        for i, name in enumerate(attribute_names):
-            if name not in ["X", "Y", "Z"]:
-                attributes[name] = array[:, i]
+        points = extract_xyz_arrays(array, point_attrs_pos)
+        attributes = extract_attributes_dict(array, attribute_names)
+
         pc = cls(points=points, attributes=attributes)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
@@ -70,8 +55,7 @@ class NumpyIO:
             file_path (Path): Path to the output NumPy .npy file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
+        attribute_names = default_attribute_names(attribute_names)
 
         logger.info(f"Saving PointCloud to NumPy file: {file_path}")
         arrays = []
@@ -89,7 +73,9 @@ class NumpyIO:
         logger.info(f"PointCloud saved to {file_path} successfully.")
 
     @classmethod
-    def from_npz_file(cls, file_path: Path | str,
+    def from_npz_file(
+        cls,
+        file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
@@ -102,38 +88,19 @@ class NumpyIO:
             PointCloud: The loaded PointCloud object.
         """
         npz_data = np.load(file_path)
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
-        point_attrs_pos = {}
-        for i, name in enumerate(attribute_names):
-            if name in ["X", "Y", "Z"]:
-                point_attrs_pos[name] = i
-        if len(point_attrs_pos) < 3:
-            logger.error(
-                f"""Attribute names must include 'X', 'Y', and 'Z', were given: {attribute_names}
-                found positions: {point_attrs_pos}"""
-            )
-            raise ValueError(
-                f"""Attribute names must include 'X', 'Y', and 'Z', were given: {attribute_names}
-                found positions: {point_attrs_pos}"""
-            )
+        attribute_names = default_attribute_names(attribute_names)
+        point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
+
         logger.info(f"Loading PointCloud from NumPy .npz file: {file_path}")
         for name in attribute_names:
             if name not in npz_data:
                 logger.error(f"Attribute '{name}' not found in .npz file.")
                 raise ValueError(f"Attribute '{name}' not found in .npz file.")
+
         array = np.vstack([npz_data[name] for name in attribute_names]).T.astype(dtype)
-        points = np.vstack(
-            (
-                array[:, point_attrs_pos["X"]],
-                array[:, point_attrs_pos["Y"]],
-                array[:, point_attrs_pos["Z"]],
-            )
-        ).T
-        attributes = {}
-        for i, name in enumerate(attribute_names):
-            if name not in ["X", "Y", "Z"]:
-                attributes[name] = array[:, i]
+        points = extract_xyz_arrays(array, point_attrs_pos)
+        attributes = extract_attributes_dict(array, attribute_names)
+
         pc = cls(points=points, attributes=attributes)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
@@ -150,8 +117,7 @@ class NumpyIO:
             file_path (Path): Path to the output NumPy .npz file.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
+        attribute_names = default_attribute_names(attribute_names)
 
         logger.info(f"Saving PointCloud to NumPy .npz file: {file_path}")
         arrays = {}

@@ -5,13 +5,22 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 
+from framecloud._io_utils import (
+    default_attribute_names,
+    extract_attributes_dict,
+    extract_xyz_arrays,
+    validate_buffer_size,
+    validate_xyz_in_attribute_names,
+)
 
 
 class BinaryIO:
     """Mixin providing binary buffer/file I/O operations for numpy PointCloud."""
 
     @classmethod
-    def from_binary_buffer(cls, bytes_buffer: bytes,
+    def from_binary_buffer(
+        cls,
+        bytes_buffer: bytes,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
@@ -23,46 +32,18 @@ class BinaryIO:
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
-
-        # [X, Y, Z, ...] must in the attribute_names
-        point_attrs_pos = {}
-        for i, name in enumerate(attribute_names):
-            if name in ["X", "Y", "Z"]:
-                point_attrs_pos[name] = i
-        if len(point_attrs_pos) < 3:
-            logger.error(
-                f"""Attribute names must include 'X', 'Y', and 'Z', were given: {attribute_names}
-                found positions: {point_attrs_pos}"""
-            )
-            raise ValueError(
-                f"""Attribute names must include 'X', 'Y', and 'Z', were given: {attribute_names}
-                found positions: {point_attrs_pos}"""
-            )
+        attribute_names = default_attribute_names(attribute_names)
+        point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
 
         logger.info("Loading PointCloud from binary buffer.")
         array = np.frombuffer(bytes_buffer, dtype=dtype)
         num_attributes = len(attribute_names)
-        if array.size % num_attributes != 0:
-            logger.error(
-                "Binary buffer size is not compatible with the number of attributes."
-            )
-            raise ValueError(
-                "Binary buffer size is not compatible with the number of attributes."
-            )
+        validate_buffer_size(array.size, num_attributes)
+
         array = array.reshape((-1, num_attributes))
-        points = np.vstack(
-            (
-                array[:, point_attrs_pos["X"]],
-                array[:, point_attrs_pos["Y"]],
-                array[:, point_attrs_pos["Z"]],
-            )
-        ).T
-        attributes = {}
-        for i, name in enumerate(attribute_names):
-            if name not in ["X", "Y", "Z"]:
-                attributes[name] = array[:, i]
+        points = extract_xyz_arrays(array, point_attrs_pos)
+        attributes = extract_attributes_dict(array, attribute_names)
+
         pc = cls(points=points, attributes=attributes)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
@@ -79,8 +60,7 @@ class BinaryIO:
         Returns:
             bytes: Bytes buffer containing the binary data.
         """
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
+        attribute_names = default_attribute_names(attribute_names)
 
         logger.info("Saving PointCloud to binary buffer.")
         arrays = []
@@ -99,7 +79,9 @@ class BinaryIO:
         return bytes_buffer
 
     @classmethod
-    def from_binary_file(cls, file_path: Path | str,
+    def from_binary_file(
+        cls,
+        file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):

@@ -6,13 +6,16 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
+from framecloud._io_utils import default_attribute_names, validate_buffer_size
 
 
 class BinaryIO:
     """Mixin providing binary buffer/file I/O operations for pandas PointCloud."""
 
     @classmethod
-    def from_binary_buffer(cls, bytes_buffer: bytes,
+    def from_binary_buffer(
+        cls,
+        bytes_buffer: bytes,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
@@ -21,12 +24,10 @@ class BinaryIO:
         Args:
             bytes_buffer (bytes): Bytes buffer containing the binary data.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
-
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
+        attribute_names = default_attribute_names(attribute_names)
 
         # [X, Y, Z, ...] must be in the attribute_names
         if not all(col in attribute_names for col in ["X", "Y", "Z"]):
@@ -36,13 +37,8 @@ class BinaryIO:
         logger.info("Loading PointCloud from binary buffer.")
         array = np.frombuffer(bytes_buffer, dtype=dtype)
         num_attributes = len(attribute_names)
-        if array.size % num_attributes != 0:
-            logger.error(
-                "Binary buffer size is not compatible with the number of attributes."
-            )
-            raise ValueError(
-                "Binary buffer size is not compatible with the number of attributes."
-            )
+        validate_buffer_size(array.size, num_attributes)
+
         array = array.reshape((-1, num_attributes))
 
         data = {name: array[:, i] for i, name in enumerate(attribute_names)}
@@ -60,12 +56,10 @@ class BinaryIO:
 
         Args:
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
-
         Returns:
             bytes: Bytes buffer containing the binary data.
         """
-        if attribute_names is None:
-            attribute_names = ["X", "Y", "Z"]
+        attribute_names = default_attribute_names(attribute_names)
 
         logger.info("Saving PointCloud to binary buffer.")
         arrays = []
@@ -82,7 +76,9 @@ class BinaryIO:
         return bytes_buffer
 
     @classmethod
-    def from_binary_file(cls, file_path: Path | str,
+    def from_binary_file(
+        cls,
+        file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
@@ -91,7 +87,6 @@ class BinaryIO:
         Args:
             file_path (Path): Path to the binary file ending with .bin.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
-
         Returns:
             PointCloud: The loaded PointCloud object.
         """
