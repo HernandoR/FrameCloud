@@ -15,7 +15,7 @@ import numpy as np
 class LasReaderProtocol(Protocol):
     """Protocol for reading LAS/LAZ files."""
 
-    def from_las(self, file_path: Path | str):
+    def from_las(self, file_path: Path | str) -> "PointCloud":
         """Load a PointCloud from a LAS/LAZ file.
 
         Args:
@@ -45,7 +45,7 @@ class LasWriterProtocol(Protocol):
 class ParquetReaderProtocol(Protocol):
     """Protocol for reading Parquet files."""
 
-    def from_parquet(self, file_path: Path | str, position_cols: list[str] | None = None):
+    def from_parquet(self, file_path: Path | str, position_cols: list[str] | None = None) -> "PointCloud":
         """Load a PointCloud from a Parquet file.
 
         Args:
@@ -84,7 +84,7 @@ class BinaryReaderProtocol(Protocol):
         bytes_buffer: bytes,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
-    ):
+    ) -> "PointCloud":
         """Load a PointCloud from a binary buffer.
 
         Args:
@@ -102,7 +102,7 @@ class BinaryReaderProtocol(Protocol):
         file_path: Path | str,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
-    ):
+    ) -> "PointCloud":
         """Load a PointCloud from a binary file.
 
         Args:
@@ -165,7 +165,7 @@ class NumpyReaderProtocol(Protocol):
         file_path: Path | str,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
-    ):
+    ) -> "PointCloud":
         """Load a PointCloud from a NumPy .npy file.
 
         Args:
@@ -183,7 +183,7 @@ class NumpyReaderProtocol(Protocol):
         file_path: Path | str,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
-    ):
+    ) -> "PointCloud":
         """Load a PointCloud from a NumPy .npz file.
 
         Args:

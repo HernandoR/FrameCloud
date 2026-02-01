@@ -6,7 +6,6 @@ provides type-safe interfaces and clean separation of concerns.
 
 import tempfile
 from pathlib import Path
-from typing import runtime_checkable
 
 import numpy as np
 import pytest

@@ -41,7 +41,11 @@ class LasIO:
         Args:
             point_cloud (PointCloud): The PointCloud object to save.
             file_path (Path): Path to the output LAS file.
-        please refer to https://laspy.readthedocs.io/en/latest/intro.html#point-format-6 and https://laspy.readthedocs.io/en/latest/intro.html#point-format-7 for supported attributes, and their names.
+
+        Note:
+            Please refer to https://laspy.readthedocs.io/en/latest/intro.html#point-format-6
+            and https://laspy.readthedocs.io/en/latest/intro.html#point-format-7
+            for supported attributes and their names.
         """
         file_path = str(file_path)
         logger.info(f"Saving PointCloud to LAS file: {file_path}")
