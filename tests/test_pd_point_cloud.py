@@ -13,7 +13,9 @@ class TestPointCloudInitialization:
 
     def test_create_basic_point_cloud(self):
         """Test creating a basic point cloud with valid DataFrame."""
-        df = pd.DataFrame({"X": [0.0, 1.0, 2.0], "Y": [0.0, 1.0, 2.0], "Z": [0.0, 1.0, 2.0]})
+        df = pd.DataFrame(
+            {"X": [0.0, 1.0, 2.0], "Y": [0.0, 1.0, 2.0], "Z": [0.0, 1.0, 2.0]}
+        )
         pc = PointCloud(data=df)
         assert pc.num_points == 3
         assert len(pc.attribute_names) == 0
@@ -57,7 +59,9 @@ class TestPointCloudProperties:
 
     def test_num_points_property(self):
         """Test num_points property."""
-        df = pd.DataFrame({"X": [0.0, 1.0, 2.0], "Y": [0.0, 1.0, 2.0], "Z": [0.0, 1.0, 2.0]})
+        df = pd.DataFrame(
+            {"X": [0.0, 1.0, 2.0], "Y": [0.0, 1.0, 2.0], "Z": [0.0, 1.0, 2.0]}
+        )
         pc = PointCloud(data=df)
         assert pc.num_points == 3
 
@@ -278,27 +282,21 @@ class TestPointCloudSampling:
 
     def test_sample_without_replacement(self):
         """Test sampling without replacement."""
-        df = pd.DataFrame(
-            {"X": np.arange(10), "Y": np.arange(10), "Z": np.arange(10)}
-        )
+        df = pd.DataFrame({"X": np.arange(10), "Y": np.arange(10), "Z": np.arange(10)})
         pc = PointCloud(data=df)
         sampled = pc.sample(num_samples=5, replace=False)
         assert sampled.num_points == 5
 
     def test_sample_with_replacement(self):
         """Test sampling with replacement."""
-        df = pd.DataFrame(
-            {"X": np.arange(10), "Y": np.arange(10), "Z": np.arange(10)}
-        )
+        df = pd.DataFrame({"X": np.arange(10), "Y": np.arange(10), "Z": np.arange(10)})
         pc = PointCloud(data=df)
         sampled = pc.sample(num_samples=15, replace=True)
         assert sampled.num_points == 15
 
     def test_sample_more_than_available_without_replacement(self):
         """Test that sampling more than available without replacement raises error."""
-        df = pd.DataFrame(
-            {"X": np.arange(10), "Y": np.arange(10), "Z": np.arange(10)}
-        )
+        df = pd.DataFrame({"X": np.arange(10), "Y": np.arange(10), "Z": np.arange(10)})
         pc = PointCloud(data=df)
         with pytest.raises(ValueError, match="exceeds number of points"):
             pc.sample(num_samples=15, replace=False)

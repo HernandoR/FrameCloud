@@ -102,7 +102,9 @@ class TestPointCloudIOParquet:
             file_path = Path(tmpdir) / "test.parquet"
             position_cols = ["px", "py", "pz"]
             PointCloudIO.to_parquet(pc, file_path, position_cols=position_cols)
-            loaded_pc = PointCloudIO.from_parquet(file_path, position_cols=position_cols)
+            loaded_pc = PointCloudIO.from_parquet(
+                file_path, position_cols=position_cols
+            )
 
             assert loaded_pc.num_points == pc.num_points
             np.testing.assert_array_almost_equal(loaded_pc.points, pc.points)
@@ -142,7 +144,9 @@ class TestPointCloudIOBinary:
 
         attribute_names = ["X", "Y", "Z", "intensity"]
         buffer = PointCloudIO.to_binary_buffer(pc, attribute_names=attribute_names)
-        loaded_pc = PointCloudIO.from_binary_buffer(buffer, attribute_names=attribute_names)
+        loaded_pc = PointCloudIO.from_binary_buffer(
+            buffer, attribute_names=attribute_names
+        )
 
         assert loaded_pc.num_points == pc.num_points
         assert "intensity" in loaded_pc.attribute_names
@@ -199,7 +203,9 @@ class TestPointCloudIONumPy:
             file_path = Path(tmpdir) / "test.npy"
             attribute_names = ["X", "Y", "Z", "intensity"]
             PointCloudIO.to_numpy_file(pc, file_path, attribute_names=attribute_names)
-            loaded_pc = PointCloudIO.from_numpy_file(file_path, attribute_names=attribute_names)
+            loaded_pc = PointCloudIO.from_numpy_file(
+                file_path, attribute_names=attribute_names
+            )
 
             assert loaded_pc.num_points == pc.num_points
             assert "intensity" in loaded_pc.attribute_names
@@ -237,7 +243,9 @@ class TestPointCloudIONPZ:
             file_path = Path(tmpdir) / "test.npz"
             attribute_names = ["X", "Y", "Z", "intensities"]
             PointCloudIO.to_npz_file(pc, file_path, attribute_names=attribute_names)
-            loaded_pc = PointCloudIO.from_npz_file(file_path, attribute_names=attribute_names)
+            loaded_pc = PointCloudIO.from_npz_file(
+                file_path, attribute_names=attribute_names
+            )
 
             assert loaded_pc.num_points == pc.num_points
             assert "intensities" in loaded_pc.attribute_names

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from loguru import logger
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class AttributeExistsError(Exception):

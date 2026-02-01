@@ -58,9 +58,7 @@ class TestBenchmarkTransformation:
         points = np.random.randn(benchmark_size, 3).astype(np.float32)
         pc = NpPointCloud(points=points)
 
-        matrix = np.array(
-            [[2, 0, 0, 10], [0, 2, 0, 20], [0, 0, 2, 30], [0, 0, 0, 1]]
-        )
+        matrix = np.array([[2, 0, 0, 10], [0, 2, 0, 20], [0, 0, 2, 30], [0, 0, 0, 1]])
 
         transformed = pc.transform(matrix, inplace=False)
         assert transformed.num_points == benchmark_size
@@ -77,9 +75,7 @@ class TestBenchmarkTransformation:
         )
         pc = PdPointCloud(data=df)
 
-        matrix = np.array(
-            [[2, 0, 0, 10], [0, 2, 0, 20], [0, 0, 2, 30], [0, 0, 0, 1]]
-        )
+        matrix = np.array([[2, 0, 0, 10], [0, 2, 0, 20], [0, 0, 2, 30], [0, 0, 0, 1]])
 
         transformed = pc.transform(matrix, inplace=False)
         assert transformed.num_points == benchmark_size

@@ -26,14 +26,14 @@ class PointCloudIO:
         las = laspy.read(file_path)
 
         data = {
-            "X": las.x,
-            "Y": las.y,
-            "Z": las.z,
+            "X": np.array(las.x),
+            "Y": np.array(las.y),
+            "Z": np.array(las.z),
         }
 
         for dimension in las.point_format.dimensions:
             if dimension.name not in ["X", "Y", "Z"]:
-                data[dimension.name] = las[dimension.name]
+                data[dimension.name] = np.array(las[dimension.name])
 
         df = pd.DataFrame(data)
         pc = PointCloud(data=df)
