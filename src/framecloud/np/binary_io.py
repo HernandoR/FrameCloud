@@ -15,10 +15,10 @@ class BinaryIO:
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
-        """Load a PointCloud from a NumPy binary file.
+        """Load a PointCloud from a binary buffer.
 
         Args:
-            bytes_buffer (bytes): Bytes buffer containing the NumPy binary data.
+            bytes_buffer (bytes): Bytes buffer containing the binary data.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         Returns:
             PointCloud: The loaded PointCloud object.
@@ -72,12 +72,12 @@ class BinaryIO:
         attribute_names: list[str] = None,
         dtype=np.float32,
     ) -> bytes:
-        """Save a PointCloud to a NumPy binary buffer.
+        """Save a PointCloud to a binary buffer.
 
         Args:
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         Returns:
-            bytes: Bytes buffer containing the NumPy binary data.
+            bytes: Bytes buffer containing the binary data.
         """
         if attribute_names is None:
             attribute_names = ["X", "Y", "Z"]
@@ -103,10 +103,10 @@ class BinaryIO:
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
-        """Load a PointCloud from a NumPy binary file.
+        """Load a PointCloud from a binary file.
 
         Args:
-            file_path (Path): Path to the NumPy binary file end with .bin.
+            file_path (Path): Path to the binary file ending with .bin.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         Returns:
             PointCloud: The loaded PointCloud object.
@@ -120,10 +120,10 @@ class BinaryIO:
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
-        """Save a PointCloud to a NumPy binary file.
+        """Save a PointCloud to a binary file.
 
         Args:
-            file_path (Path): Path to the output NumPy binary file end with .bin.
+            file_path (Path): Path to the output binary file ending with .bin.
             attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
         """
         bytes_buffer = self.to_binary_buffer(attribute_names, dtype)
