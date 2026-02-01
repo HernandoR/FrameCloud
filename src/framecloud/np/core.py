@@ -1,6 +1,6 @@
 import numpy as np
 from loguru import logger
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class AttributeExistsError(Exception):
@@ -22,6 +22,8 @@ class PointCloud(BaseModel):
         points (np.ndarray): An Nx3 array representing the 3D coordinates of N points.
         attributes (dict): A dictionary containing additional attributes for the points.
     """
+
+    model_config = {"arbitrary_types_allowed": True}
 
     points: np.ndarray = Field(
         ...,
@@ -51,9 +53,28 @@ class PointCloud(BaseModel):
                     f"Attribute '{attr_name}' length does not match number of points."
                 )
 
+    @model_validator(mode="after")
+    def validate_attributes(self):
+        """Validate that all attributes have the same length as points."""
+        for attr_name, attr_value in self.attributes.items():
+            if attr_value.shape[0] != self.points.shape[0]:
+                logger.error(
+                    f"Attribute '{attr_name}' length does not match number of points."
+                )
+                raise ArrayShapeError(
+                    f"Attribute '{attr_name}' length does not match number of points."
+                )
+        return self
+
     def __getattribute__(self, name):
-        if name in self.attributes:
-            return self.attributes[name]
+        # Use super().__getattribute__ to access 'attributes' to avoid recursion
+        if name not in ["attributes", "points", "model_config"] and name[0] != "_":
+            try:
+                attributes = super().__getattribute__("attributes")
+                if name in attributes:
+                    return attributes[name]
+            except AttributeError:
+                pass
         return super().__getattribute__(name)
 
     @property
