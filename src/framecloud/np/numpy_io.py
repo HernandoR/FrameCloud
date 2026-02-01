@@ -11,8 +11,7 @@ class NumpyIO:
     """Mixin providing NumPy file format (.npy, .npz) I/O operations for numpy PointCloud."""
 
     @classmethod
-    def from_numpy_file(cls, 
-        file_path: Path | str,
+    def from_numpy_file(cls, file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
@@ -90,8 +89,7 @@ class NumpyIO:
         logger.info(f"PointCloud saved to {file_path} successfully.")
 
     @classmethod
-    def from_npz_file(cls, 
-        file_path: Path | str,
+    def from_npz_file(cls, file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):

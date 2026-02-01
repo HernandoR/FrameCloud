@@ -11,8 +11,7 @@ class BinaryIO:
     """Mixin providing binary buffer/file I/O operations for numpy PointCloud."""
 
     @classmethod
-    def from_binary_buffer(cls, 
-        bytes_buffer: bytes,
+    def from_binary_buffer(cls, bytes_buffer: bytes,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):
@@ -100,8 +99,7 @@ class BinaryIO:
         return bytes_buffer
 
     @classmethod
-    def from_binary_file(cls, 
-        file_path: Path | str,
+    def from_binary_file(cls, file_path: Path | str,
         attribute_names: list[str] = None,
         dtype=np.float32,
     ):

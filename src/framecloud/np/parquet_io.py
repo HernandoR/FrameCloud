@@ -10,9 +10,7 @@ class ParquetIO:
     """Mixin providing Parquet file I/O operations for numpy PointCloud."""
 
     @classmethod
-    def from_parquet(
-        cls,
-        file_path: Path | str,
+    def from_parquet(cls, file_path: Path | str,
         position_cols: list[str] = None,
     ):
         """Load a PointCloud from a Parquet file.
