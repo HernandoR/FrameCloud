@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from framecloud.pd.core import PointCloud
-from framecloud.pd.pintcloud_io import PointCloudIO
+from framecloud.pd.pointcloud_io import PointCloudIO
 
 
 class TestPointCloudIOLAS:
@@ -353,7 +353,7 @@ class TestPointCloudIOCrossCheck:
 
     def test_parquet_consistency_with_np(self, medium_point_cloud_np):
         """Test that parquet I/O produces same results as np implementation."""
-        from framecloud.np.pintcloud_io import PointCloudIO as NpPointCloudIO
+        from framecloud.np.pointcloud_io import PointCloudIO as NpPointCloudIO
         from tests.conftest import np_to_pd_pointcloud
 
         # Convert np to pd

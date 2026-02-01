@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from framecloud.np.core import PointCloud
-from framecloud.np.pintcloud_io import PointCloudIO
+from framecloud.np.pointcloud_io import PointCloudIO
 
 
 class TestPointCloudIOLAS:

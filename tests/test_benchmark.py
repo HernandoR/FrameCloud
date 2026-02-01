@@ -8,9 +8,9 @@ import pandas as pd
 import pytest
 
 from framecloud.np.core import PointCloud as NpPointCloud
-from framecloud.np.pintcloud_io import PointCloudIO as NpPointCloudIO
+from framecloud.np.pointcloud_io import PointCloudIO as NpPointCloudIO
 from framecloud.pd.core import PointCloud as PdPointCloud
-from framecloud.pd.pintcloud_io import PointCloudIO as PdPointCloudIO
+from framecloud.pd.pointcloud_io import PointCloudIO as PdPointCloudIO
 
 
 @pytest.fixture(params=[10_000_000, 50_000_000, 100_000_000])
