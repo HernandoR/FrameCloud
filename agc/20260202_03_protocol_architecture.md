@@ -1,144 +1,134 @@
-# Protocol-Based Architecture (Rust Trait Pattern)
+# Consolidated I/O Architecture
 
-This document explains the Protocol-based architecture used for I/O operations in FrameCloud, which follows a Rust Trait-like pattern using Python's `typing.Protocol`.
+This document explains the consolidated I/O architecture in FrameCloud, which embeds all I/O operations directly into the PointCloud class with unified protocols.
 
 ## Overview
 
-Instead of using factory classes for I/O operations, we've implemented a Protocol-based architecture that:
+The I/O operations are consolidated into the PointCloud core classes with:
 
-1. **Separates interfaces from implementations** - Protocols define what methods must exist, implementations provide the actual code
-2. **Enables type-safe composition** - Static type checkers can verify that implementations satisfy protocols
-3. **Supports cross-file implementation splitting** - Each I/O format has its own isolated module
-4. **Provides better maintainability** - Clear separation of concerns makes code easier to understand and modify
+1. **All I/O methods embedded in PointCloud** - No separate implementation files
+2. **Unified protocols** - Each protocol combines read and write operations
+3. **Clear section organization** - Comment headers separate different I/O formats
+4. **Better static type checking** - Everything in one file for better analysis
 
 ## Architecture
 
-### Protocol Definitions (`src/framecloud/protocols.py`)
+### Unified Protocol Definitions (`src/framecloud/protocols.py`)
 
-Protocols define the interface contracts (similar to Rust Traits):
+Protocols define interface contracts with read and write operations combined:
 
 ```python
-from typing import Protocol, runtime_checkable
+from typing import Protocol, Self, runtime_checkable
 
 @runtime_checkable
-class LasReaderProtocol(Protocol):
-    """Protocol for reading LAS/LAZ files."""
-    def from_las(self, file_path: Path | str):
+class LasIOProtocol(Protocol):
+    """Protocol for LAS/LAZ file I/O operations (read and write)."""
+    
+    @classmethod
+    def from_las(cls, file_path: Path | str) -> Self:
         ...
-
-@runtime_checkable
-class LasWriterProtocol(Protocol):
-    """Protocol for writing LAS/LAZ files."""
-    def to_las(self, point_cloud, file_path: Path | str) -> None:
+    
+    def to_las(self, file_path: Path | str) -> None:
         ...
 ```
 
-Available protocols:
-- `LasReaderProtocol` / `LasWriterProtocol` - LAS/LAZ file operations
-- `ParquetReaderProtocol` / `ParquetWriterProtocol` - Parquet file operations
-- `BinaryReaderProtocol` / `BinaryWriterProtocol` - Binary buffer/file operations
-- `NumpyReaderProtocol` / `NumpyWriterProtocol` - NumPy file format operations
+Available protocols (each combines read + write):
+- `LasIOProtocol` - LAS/LAZ file operations
+- `ParquetIOProtocol` - Parquet file operations
+- `BinaryIOProtocol` - Binary buffer/file operations
+- `NumpyIOProtocol` - NumPy file format operations
 
-### Implementation Modules
+### Consolidated Core Classes
 
-Each I/O format has its own implementation module:
+All I/O methods are embedded directly in the PointCloud classes:
 
-#### NumPy-based implementations:
-- `src/framecloud/np/las_io.py` - LAS/LAZ file I/O
-- `src/framecloud/np/parquet_io.py` - Parquet file I/O
-- `src/framecloud/np/binary_io.py` - Binary buffer/file I/O
-- `src/framecloud/np/numpy_io.py` - NumPy file format I/O
-
-#### Pandas-based implementations:
-- `src/framecloud/pd/las_io.py` - LAS/LAZ file I/O
-- `src/framecloud/pd/parquet_io.py` - Parquet file I/O
-- `src/framecloud/pd/binary_io.py` - Binary buffer/file I/O
-- `src/framecloud/pd/numpy_io.py` - NumPy file format I/O
-
-### Composition Pattern
-
-The main `PointCloudIO` class composes all implementations through multiple inheritance:
-
+#### NumPy-based implementation (`src/framecloud/np/core.py`):
 ```python
-class PointCloudIO(LasIO, ParquetIO, BinaryIO, NumpyIO):
-    """Unified interface composing all I/O implementations."""
+class PointCloud(BaseModel):
+    # ... core attributes and methods ...
     
-    @staticmethod
-    def from_las(file_path: Path | str) -> PointCloud:
-        return LasIO.from_las(file_path)
+    # ========================================================================
+    # LAS/LAZ File I/O Operations
+    # ========================================================================
     
-    @staticmethod
-    def to_las(point_cloud: PointCloud, file_path: Path | str):
-        return LasIO.to_las(point_cloud, file_path)
+    @classmethod
+    def from_las(cls, file_path: Path | str):
+        ...
     
-    # ... similar delegation for other formats
+    def to_las(self, file_path: Path | str):
+        ...
+    
+    # ========================================================================
+    # Parquet File I/O Operations  
+    # ========================================================================
+    
+    @classmethod
+    def from_parquet(cls, file_path: Path | str, position_cols: list[str] = None):
+        ...
 ```
+
+#### Pandas-based implementation (`src/framecloud/pd/core.py`):
+Similar structure with all I/O methods embedded directly in the PdPointCloud class.
+
+### Shared Utilities
+
+**Common exceptions** (`src/framecloud/exceptions.py`):
+- `AttributeExistsError`
+- `ArrayShapeError`
+
+**Utility functions** (`src/framecloud/_io_utils.py`):
+- `validate_xyz_in_attribute_names()`
+- `validate_buffer_size()`
+- `default_attribute_names()`
+- `extract_xyz_arrays()`
+- `extract_attributes_dict()`
 
 ## Benefits
 
-### 1. Separation of Concerns
-Each I/O format is isolated in its own module, making the code easier to understand and maintain:
+### 1. Better Maintainability
+All I/O operations are in the PointCloud class, making the codebase easier to navigate:
 
 ```python
-# Use specific implementation directly
-from framecloud.np.las_io import LasIO
-LasIO.to_las(point_cloud, "output.las")
+# Direct use of PointCloud methods
+from framecloud.np.core import PointCloud
 
-# Or use the unified interface
-from framecloud.np.pointcloud_io import PointCloudIO
-PointCloudIO.to_las(point_cloud, "output.las")
+pc = PointCloud(points=points)
+pc.to_las("output.las")
+loaded = PointCloud.from_las("input.las")
 ```
 
-### 2. Type Safety
-Static type checkers can verify protocol compliance:
+### 2. Improved Static Type Checking
+Type checkers can properly analyze everything since it's in one file:
 
 ```python
-from framecloud.protocols import LasReaderProtocol
-from framecloud.np.las_io import LasIO
+from framecloud.protocols import LasIOProtocol
+from framecloud.np.core import PointCloud
 
-# Type checker verifies LasIO implements LasReaderProtocol
-def process_las_file(reader: LasReaderProtocol, path: str):
-    return reader.from_las(path)
+# Type checker verifies PointCloud implements LasIOProtocol
+def process_las_file(handler: LasIOProtocol, path: str):
+    return handler.from_las(path)
 
-las_io = LasIO()
-assert isinstance(las_io, LasReaderProtocol)  # Runtime check
+pc_class = PointCloud
+assert isinstance(pc_class, LasIOProtocol)  # Runtime check
 ```
 
-### 3. Extensibility
-Adding new I/O formats is straightforward:
+### 3. Unified Protocols
+Each protocol combines read and write operations, reflecting that if something can read a format, it should be able to write it too.
 
-1. Define new protocols in `protocols.py`
-2. Create implementation module
-3. Add to `PointCloudIO` composition
-
-### 4. Testability
-Each implementation can be tested independently:
+### 4. Code Organization
+Clear section markers make it easy to find specific I/O operations:
 
 ```python
-# Test only LAS I/O
-from framecloud.np.las_io import LasIO
-
-def test_las_roundtrip():
-    pc = create_test_pointcloud()
-    LasIO.to_las(pc, "test.las")
-    loaded = LasIO.from_las("test.las")
-    assert_equal(pc, loaded)
+# Navigate to specific section in core.py
+# ========================================================================
+# LAS/LAZ File I/O Operations
+# ========================================================================
 ```
 
-### 5. Backward Compatibility
-All existing code continues to work unchanged:
+### 5. Reduced Duplication
+Common logic is extracted into shared utilities and exception classes.
 
-```python
-# Old code still works
-from framecloud.np.pointcloud_io import PointCloudIO
-
-PointCloudIO.to_las(pc, "output.las")
-PointCloudIO.to_parquet(pc, "output.parquet")
-```
-
-## Comparison with Rust Traits
-
-This pattern is inspired by Rust's trait system:
+## Usage Examples
 
 | Rust Traits | Python Protocols |
 |-------------|------------------|

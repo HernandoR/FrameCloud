@@ -297,7 +297,9 @@ class PointCloud(BaseModel):
     # ========================================================================
 
     @classmethod
-    def from_parquet(cls, file_path: Path | str,
+    def from_parquet(
+        cls,
+        file_path: Path | str,
         position_cols: list[str] = None,
     ):
         """Load a PointCloud from a Parquet file.

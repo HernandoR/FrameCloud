@@ -8,9 +8,7 @@ import pandas as pd
 import pytest
 
 from framecloud.np.core import PointCloud as NpPointCloud
-from framecloud.np.pointcloud_io import PointCloudIO as NpPointCloudIO
 from framecloud.pd.core import PointCloud as PdPointCloud
-from framecloud.pd.pointcloud_io import PointCloudIO as PdPointCloudIO
 
 
 @pytest.fixture(params=[10_000_000, 50_000_000, 100_000_000])
@@ -123,8 +121,8 @@ class TestBenchmarkIO:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "benchmark.parquet"
-            NpPointCloudIO.to_parquet(pc, file_path)
-            loaded = NpPointCloudIO.from_parquet(file_path)
+            pc.to_parquet(file_path)
+            loaded = NpPointCloud.from_parquet(file_path)
             assert loaded.num_points == benchmark_size
 
     def test_pd_parquet_io_large(self, benchmark_size):
@@ -142,8 +140,8 @@ class TestBenchmarkIO:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "benchmark.parquet"
-            PdPointCloudIO.to_parquet(pc, file_path)
-            loaded = PdPointCloudIO.from_parquet(file_path)
+            pc.to_parquet(file_path)
+            loaded = PdPointCloud.from_parquet(file_path)
             assert loaded.num_points == benchmark_size
 
 
