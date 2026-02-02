@@ -3,6 +3,8 @@
 This module defines Protocol interfaces (similar to Rust Traits) for various
 I/O operations on PointCloud objects. Protocols provide type-safe interfaces
 that separate interface definitions from implementations.
+
+Note: Protocols are unified - if something can read a format, it can also write it.
 """
 
 from pathlib import Path
@@ -12,10 +14,11 @@ import numpy as np
 
 
 @runtime_checkable
-class LasReaderProtocol(Protocol):
-    """Protocol for reading LAS/LAZ files."""
+class LasIOProtocol(Protocol):
+    """Protocol for LAS/LAZ file I/O operations (read and write)."""
 
-    def from_las(self, file_path: Path | str) -> "PointCloud":
+    @classmethod
+    def from_las(cls, file_path: Path | str) -> "PointCloud":
         """Load a PointCloud from a LAS/LAZ file.
 
         Args:
@@ -26,26 +29,21 @@ class LasReaderProtocol(Protocol):
         """
         ...
 
-
-@runtime_checkable
-class LasWriterProtocol(Protocol):
-    """Protocol for writing LAS/LAZ files."""
-
-    def to_las(self, point_cloud, file_path: Path | str) -> None:
-        """Save a PointCloud to a LAS file.
+    def to_las(self, file_path: Path | str) -> None:
+        """Save this PointCloud to a LAS file.
 
         Args:
-            point_cloud: The PointCloud object to save.
             file_path: Path to the output LAS file.
         """
         ...
 
 
 @runtime_checkable
-class ParquetReaderProtocol(Protocol):
-    """Protocol for reading Parquet files."""
+class ParquetIOProtocol(Protocol):
+    """Protocol for Parquet file I/O operations (read and write)."""
 
-    def from_parquet(self, file_path: Path | str, position_cols: list[str] | None = None) -> "PointCloud":
+    @classmethod
+    def from_parquet(cls, file_path: Path | str, position_cols: list[str] | None = None) -> "PointCloud":
         """Load a PointCloud from a Parquet file.
 
         Args:
@@ -57,18 +55,12 @@ class ParquetReaderProtocol(Protocol):
         """
         ...
 
-
-@runtime_checkable
-class ParquetWriterProtocol(Protocol):
-    """Protocol for writing Parquet files."""
-
     def to_parquet(
-        self, point_cloud, file_path: Path | str, position_cols: list[str] | None = None
+        self, file_path: Path | str, position_cols: list[str] | None = None
     ) -> None:
-        """Save a PointCloud to a Parquet file.
+        """Save this PointCloud to a Parquet file.
 
         Args:
-            point_cloud: The PointCloud object to save.
             file_path: Path to the output Parquet file.
             position_cols: List of column names for point positions.
         """
@@ -76,11 +68,12 @@ class ParquetWriterProtocol(Protocol):
 
 
 @runtime_checkable
-class BinaryReaderProtocol(Protocol):
-    """Protocol for reading binary buffers and files."""
+class BinaryIOProtocol(Protocol):
+    """Protocol for binary buffer/file I/O operations (read and write)."""
 
+    @classmethod
     def from_binary_buffer(
-        self,
+        cls,
         bytes_buffer: bytes,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
@@ -97,8 +90,25 @@ class BinaryReaderProtocol(Protocol):
         """
         ...
 
-    def from_binary_file(
+    def to_binary_buffer(
         self,
+        attribute_names: list[str] | None = None,
+        dtype=np.float32,
+    ) -> bytes:
+        """Save this PointCloud to a binary buffer.
+
+        Args:
+            attribute_names: List of attribute names in order.
+            dtype: NumPy data type for the array.
+
+        Returns:
+            Bytes buffer containing the binary data.
+        """
+        ...
+
+    @classmethod
+    def from_binary_file(
+        cls,
         file_path: Path | str,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
@@ -115,40 +125,15 @@ class BinaryReaderProtocol(Protocol):
         """
         ...
 
-
-@runtime_checkable
-class BinaryWriterProtocol(Protocol):
-    """Protocol for writing binary buffers and files."""
-
-    def to_binary_buffer(
-        self,
-        point_cloud,
-        attribute_names: list[str] | None = None,
-        dtype=np.float32,
-    ) -> bytes:
-        """Save a PointCloud to a binary buffer.
-
-        Args:
-            point_cloud: The PointCloud object to save.
-            attribute_names: List of attribute names in order.
-            dtype: NumPy data type for the array.
-
-        Returns:
-            Bytes buffer containing the binary data.
-        """
-        ...
-
     def to_binary_file(
         self,
-        point_cloud,
         file_path: Path | str,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
     ) -> None:
-        """Save a PointCloud to a binary file.
+        """Save this PointCloud to a binary file.
 
         Args:
-            point_cloud: The PointCloud object to save.
             file_path: Path to the output binary file.
             attribute_names: List of attribute names in order.
             dtype: NumPy data type for the array.
@@ -157,11 +142,12 @@ class BinaryWriterProtocol(Protocol):
 
 
 @runtime_checkable
-class NumpyReaderProtocol(Protocol):
-    """Protocol for reading NumPy file formats (.npy, .npz)."""
+class NumpyIOProtocol(Protocol):
+    """Protocol for NumPy file format I/O operations (read and write for .npy and .npz)."""
 
+    @classmethod
     def from_numpy_file(
-        self,
+        cls,
         file_path: Path | str,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
@@ -178,8 +164,24 @@ class NumpyReaderProtocol(Protocol):
         """
         ...
 
-    def from_npz_file(
+    def to_numpy_file(
         self,
+        file_path: Path | str,
+        attribute_names: list[str] | None = None,
+        dtype=np.float32,
+    ) -> None:
+        """Save this PointCloud to a NumPy .npy file.
+
+        Args:
+            file_path: Path to the output NumPy .npy file.
+            attribute_names: List of attribute names in order.
+            dtype: NumPy data type for the array.
+        """
+        ...
+
+    @classmethod
+    def from_npz_file(
+        cls,
         file_path: Path | str,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
@@ -196,39 +198,15 @@ class NumpyReaderProtocol(Protocol):
         """
         ...
 
-
-@runtime_checkable
-class NumpyWriterProtocol(Protocol):
-    """Protocol for writing NumPy file formats (.npy, .npz)."""
-
-    def to_numpy_file(
-        self,
-        point_cloud,
-        file_path: Path | str,
-        attribute_names: list[str] | None = None,
-        dtype=np.float32,
-    ) -> None:
-        """Save a PointCloud to a NumPy .npy file.
-
-        Args:
-            point_cloud: The PointCloud object to save.
-            file_path: Path to the output NumPy .npy file.
-            attribute_names: List of attribute names in order.
-            dtype: NumPy data type for the array.
-        """
-        ...
-
     def to_npz_file(
         self,
-        point_cloud,
         file_path: Path | str,
         attribute_names: list[str] | None = None,
         dtype=np.float32,
     ) -> None:
-        """Save a PointCloud to a NumPy .npz file.
+        """Save this PointCloud to a NumPy .npz file.
 
         Args:
-            point_cloud: The PointCloud object to save.
             file_path: Path to the output NumPy .npz file.
             attribute_names: List of attribute names in order.
             dtype: NumPy data type for the array.
