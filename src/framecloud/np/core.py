@@ -1,18 +1,25 @@
+"""PointCloud core implementation with integrated I/O operations.
+
+This module contains the PointCloud class for numpy-based point cloud data,
+with all I/O operations (LAS, Parquet, Binary, NumPy) integrated directly.
+"""
+
+from pathlib import Path
+
+import laspy
 import numpy as np
+import polars as pl
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-
-class AttributeExistsError(Exception):
-    """Custom exception raised when an attribute already exists in the point cloud."""
-
-    name: str
-
-
-class ArrayShapeError(ValueError):
-    """Custom exception raised when a numpy array has an unexpected shape."""
-
-    info: str
+from framecloud._io_utils import (
+    default_attribute_names,
+    extract_attributes_dict,
+    extract_xyz_arrays,
+    validate_buffer_size,
+    validate_xyz_in_attribute_names,
+)
+from framecloud.exceptions import ArrayShapeError, AttributeExistsError
 
 
 class PointCloud(BaseModel):
@@ -232,3 +239,330 @@ class PointCloud(BaseModel):
 
         logger.debug(f"Sampled {num_samples} points from the point cloud.")
         return PointCloud(points=sampled_points, attributes=sampled_attributes)
+
+    # ========================================================================
+    # LAS/LAZ File I/O Operations
+    # ========================================================================
+
+    @classmethod
+    def from_las(cls, file_path: Path | str):
+        """Load a PointCloud from a LAS/LAZ file.
+
+        Args:
+            file_path (Path): Path to the LAS/LAZ file.
+        Returns:
+            PointCloud: The loaded PointCloud object.
+        """
+        logger.info(f"Loading PointCloud from LAS/LAZ file: {file_path}")
+        las = laspy.read(file_path)
+        points = np.vstack((las.x, las.y, las.z)).T
+
+        attributes = {}
+        for dimension in las.point_format.dimensions:
+            if dimension.name not in ["X", "Y", "Z"]:
+                attributes[dimension.name] = las[dimension.name]
+
+        pc = cls(points=points, attributes=attributes)
+        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        return pc
+
+    def to_las(self, file_path: Path | str):
+        """Save this PointCloud to a LAS file.
+
+        Args:
+            file_path (Path): Path to the output LAS file.
+
+        Note:
+            Please refer to https://laspy.readthedocs.io/en/latest/intro.html#point-format-6
+            and https://laspy.readthedocs.io/en/latest/intro.html#point-format-7
+            for supported attributes and their names.
+        """
+        file_path = str(file_path)
+        logger.info(f"Saving PointCloud to LAS file: {file_path}")
+        header = laspy.LasHeader(point_format=7, version="1.4")
+        las = laspy.LasData(header)
+
+        las.x = self.points[:, 0]
+        las.y = self.points[:, 1]
+        las.z = self.points[:, 2]
+
+        for attr_name, values in self.attributes.items():
+            las[attr_name] = values
+
+        las.write(file_path)
+        logger.info(f"PointCloud saved to {file_path} successfully.")
+
+    # ========================================================================
+    # Parquet File I/O Operations
+    # ========================================================================
+
+    @classmethod
+    def from_parquet(
+        cls,
+        file_path: Path | str,
+        position_cols: list[str] = None,
+    ):
+        """Load a PointCloud from a Parquet file.
+
+        Args:
+            file_path (Path): Path to the Parquet file.
+            position_cols (list[str]): List of column names for point positions. Defaults to ["X", "Y", "Z"].
+        Returns:
+            PointCloud: The loaded PointCloud object.
+        """
+        if position_cols is None:
+            position_cols = ["X", "Y", "Z"]
+        logger.info(f"Loading PointCloud from Parquet file: {file_path}")
+        df = pl.read_parquet(file_path)
+        points = df.select(position_cols).to_numpy()
+
+        attributes = {}
+        for col in df.columns:
+            if col not in position_cols:
+                attributes[col] = df[col].to_numpy()
+
+        pc = cls(points=points, attributes=attributes)
+        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        return pc
+
+    def to_parquet(self, file_path: Path | str, position_cols: list[str] = None):
+        """Save this PointCloud to a Parquet file.
+
+        Args:
+            file_path (Path): Path to the output Parquet file.
+            position_cols (list[str]): List of column names for point positions. Defaults to ["X", "Y", "Z"].
+        """
+        if position_cols is None:
+            position_cols = ["X", "Y", "Z"]
+        logger.info(f"Saving PointCloud to Parquet file: {file_path}")
+        data = {}
+        data[position_cols[0]] = self.points[:, 0]
+        data[position_cols[1]] = self.points[:, 1]
+        data[position_cols[2]] = self.points[:, 2]
+
+        for attr_name, values in self.attributes.items():
+            data[attr_name] = values
+
+        df = pl.DataFrame(data)
+        df.write_parquet(file_path)
+        logger.info(f"PointCloud saved to {file_path} successfully.")
+
+    # ========================================================================
+    # Binary Buffer/File I/O Operations
+    # ========================================================================
+
+    @classmethod
+    def from_binary_buffer(
+        cls,
+        bytes_buffer: bytes,
+        attribute_names: list[str] = None,
+        dtype=np.float32,
+    ):
+        """Load a PointCloud from a binary buffer.
+
+        Args:
+            bytes_buffer (bytes): Bytes buffer containing the binary data.
+            attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
+        Returns:
+            PointCloud: The loaded PointCloud object.
+        """
+        attribute_names = default_attribute_names(attribute_names)
+        point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
+
+        logger.info("Loading PointCloud from binary buffer.")
+        array = np.frombuffer(bytes_buffer, dtype=dtype)
+        num_attributes = len(attribute_names)
+        validate_buffer_size(array.size, num_attributes)
+
+        array = array.reshape((-1, num_attributes))
+        points = extract_xyz_arrays(array, point_attrs_pos)
+        attributes = extract_attributes_dict(array, attribute_names)
+
+        pc = cls(points=points, attributes=attributes)
+        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        return pc
+
+    def to_binary_buffer(
+        self,
+        attribute_names: list[str] = None,
+        dtype=np.float32,
+    ) -> bytes:
+        """Save this PointCloud to a binary buffer.
+
+        Args:
+            attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
+        Returns:
+            bytes: Bytes buffer containing the binary data.
+        """
+        attribute_names = default_attribute_names(attribute_names)
+
+        logger.info("Saving PointCloud to binary buffer.")
+        arrays = []
+        for name in attribute_names:
+            if name == "X":
+                arrays.append(self.points[:, 0])
+            elif name == "Y":
+                arrays.append(self.points[:, 1])
+            elif name == "Z":
+                arrays.append(self.points[:, 2])
+            else:
+                arrays.append(self.attributes[name])
+        combined_array = np.vstack(arrays).T.astype(dtype)
+        bytes_buffer = combined_array.tobytes()
+        logger.info("PointCloud saved to binary buffer successfully.")
+        return bytes_buffer
+
+    @classmethod
+    def from_binary_file(
+        cls,
+        file_path: Path | str,
+        attribute_names: list[str] = None,
+        dtype=np.float32,
+    ):
+        """Load a PointCloud from a binary file.
+
+        Args:
+            file_path (Path): Path to the binary file ending with .bin.
+            attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
+        Returns:
+            PointCloud: The loaded PointCloud object.
+        """
+        buffer = Path(file_path).read_bytes()
+        return cls.from_binary_buffer(buffer, attribute_names, dtype)
+
+    def to_binary_file(
+        self,
+        file_path: Path | str,
+        attribute_names: list[str] = None,
+        dtype=np.float32,
+    ):
+        """Save this PointCloud to a binary file.
+
+        Args:
+            file_path (Path): Path to the output binary file ending with .bin.
+            attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
+        """
+        bytes_buffer = self.to_binary_buffer(attribute_names, dtype)
+        Path(file_path).write_bytes(bytes_buffer)
+        logger.info(f"PointCloud saved to {file_path} successfully.")
+
+    # ========================================================================
+    # NumPy File Format I/O Operations (.npy and .npz)
+    # ========================================================================
+
+    @classmethod
+    def from_numpy_file(
+        cls,
+        file_path: Path | str,
+        attribute_names: list[str] = None,
+        dtype=np.float32,
+    ):
+        """Load a PointCloud from a NumPy .npy file.
+
+        Args:
+            file_path (Path): Path to the NumPy .npy file.
+            attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
+        Returns:
+            PointCloud: The loaded PointCloud object.
+        """
+        array = np.load(file_path).astype(dtype)
+        attribute_names = default_attribute_names(attribute_names)
+        point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
+
+        logger.info(f"Loading PointCloud from NumPy file: {file_path}")
+        points = extract_xyz_arrays(array, point_attrs_pos)
+        attributes = extract_attributes_dict(array, attribute_names)
+
+        pc = cls(points=points, attributes=attributes)
+        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        return pc
+
+    def to_numpy_file(
+        self,
+        file_path: Path | str,
+        attribute_names: list[str] = None,
+        dtype=np.float32,
+    ):
+        """Save this PointCloud to a NumPy .npy file.
+
+        Args:
+            file_path (Path): Path to the output NumPy .npy file.
+            attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
+        """
+        attribute_names = default_attribute_names(attribute_names)
+
+        logger.info(f"Saving PointCloud to NumPy file: {file_path}")
+        arrays = []
+        for name in attribute_names:
+            if name == "X":
+                arrays.append(self.points[:, 0])
+            elif name == "Y":
+                arrays.append(self.points[:, 1])
+            elif name == "Z":
+                arrays.append(self.points[:, 2])
+            else:
+                arrays.append(self.attributes[name])
+        combined_array = np.vstack(arrays).T.astype(dtype)
+        np.save(file_path, combined_array)
+        logger.info(f"PointCloud saved to {file_path} successfully.")
+
+    @classmethod
+    def from_npz_file(
+        cls,
+        file_path: Path | str,
+        attribute_names: list[str] = None,
+        dtype=np.float32,
+    ):
+        """Load a PointCloud from a NumPy .npz file.
+
+        Args:
+            file_path (Path): Path to the NumPy .npz file.
+            attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
+        Returns:
+            PointCloud: The loaded PointCloud object.
+        """
+        npz_data = np.load(file_path)
+        attribute_names = default_attribute_names(attribute_names)
+        point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
+
+        logger.info(f"Loading PointCloud from NumPy .npz file: {file_path}")
+        for name in attribute_names:
+            if name not in npz_data:
+                logger.error(f"Attribute '{name}' not found in .npz file.")
+                raise ValueError(f"Attribute '{name}' not found in .npz file.")
+
+        array = np.vstack([npz_data[name] for name in attribute_names]).T.astype(dtype)
+        points = extract_xyz_arrays(array, point_attrs_pos)
+        attributes = extract_attributes_dict(array, attribute_names)
+
+        pc = cls(points=points, attributes=attributes)
+        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        return pc
+
+    def to_npz_file(
+        self,
+        file_path: Path | str,
+        attribute_names: list[str] = None,
+        dtype=np.float32,
+    ):
+        """Save this PointCloud to a NumPy .npz file.
+
+        Args:
+            file_path (Path): Path to the output NumPy .npz file.
+            attribute_names (list[str]): List of attribute names in order. Defaults to [X,Y,Z].
+        """
+        attribute_names = default_attribute_names(attribute_names)
+
+        logger.info(f"Saving PointCloud to NumPy .npz file: {file_path}")
+        arrays = {}
+        for name in attribute_names:
+            if name == "X":
+                arrays[name] = self.points[:, 0].astype(dtype)
+            elif name == "Y":
+                arrays[name] = self.points[:, 1].astype(dtype)
+            elif name == "Z":
+                arrays[name] = self.points[:, 2].astype(dtype)
+            else:
+                arrays[name] = self.attributes[name].astype(dtype)
+        np.savez(file_path, **arrays)
+        logger.info(f"PointCloud saved to {file_path} successfully.")
