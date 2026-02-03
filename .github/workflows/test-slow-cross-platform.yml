@@ -13,6 +13,9 @@ on:
       - '.github/workflows/test-slow-cross-platform.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-slow-cross-platform:
     name: Benchmark Tests (${{ matrix.os }})

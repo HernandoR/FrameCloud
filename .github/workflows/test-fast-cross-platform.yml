@@ -21,6 +21,9 @@ on:
       - '.github/workflows/test-fast-cross-platform.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-fast-cross-platform:
     name: Fast Tests (${{ matrix.os }})

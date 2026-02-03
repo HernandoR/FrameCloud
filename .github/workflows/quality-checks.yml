@@ -21,6 +21,9 @@ on:
       - '.github/workflows/quality-checks.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   quality-checks:
     name: Lint, Format, Type Check

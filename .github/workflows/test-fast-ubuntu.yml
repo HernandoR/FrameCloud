@@ -21,6 +21,9 @@ on:
       - '.github/workflows/test-fast-ubuntu.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-fast-ubuntu:
     name: Fast Tests (Python ${{ matrix.python-version }})
