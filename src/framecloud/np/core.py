@@ -260,7 +260,7 @@ class PointCloud(BaseModel):
         attributes = {}
         for dimension in las.point_format.dimensions:
             if dimension.name not in ["X", "Y", "Z"]:
-                attributes[dimension.name] = las[dimension.name]
+                attributes[dimension.name] = np.array(las[dimension.name])
 
         pc = cls(points=points, attributes=attributes)
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
