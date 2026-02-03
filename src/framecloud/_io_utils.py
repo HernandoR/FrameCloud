@@ -45,8 +45,12 @@ def validate_buffer_size(array_size: int, num_attributes: int):
         ValueError: If sizes are incompatible
     """
     if array_size % num_attributes != 0:
-        logger.error("Binary buffer size is not compatible with the number of attributes.")
-        raise ValueError("Binary buffer size is not compatible with the number of attributes.")
+        logger.error(
+            "Binary buffer size is not compatible with the number of attributes."
+        )
+        raise ValueError(
+            "Binary buffer size is not compatible with the number of attributes."
+        )
 
 
 def default_attribute_names(attribute_names: list[str] | None) -> list[str]:
@@ -61,7 +65,9 @@ def default_attribute_names(attribute_names: list[str] | None) -> list[str]:
     return attribute_names if attribute_names is not None else ["X", "Y", "Z"]
 
 
-def extract_xyz_arrays(array: np.ndarray, point_attrs_pos: dict[str, int]) -> np.ndarray:
+def extract_xyz_arrays(
+    array: np.ndarray, point_attrs_pos: dict[str, int]
+) -> np.ndarray:
     """Extract X, Y, Z columns from array and stack into points array.
 
     Args:

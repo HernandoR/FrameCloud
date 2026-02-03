@@ -88,9 +88,7 @@ class TestPointCloudIOParquet:
             file_path = Path(tmpdir) / "test.parquet"
             position_cols = ["px", "py", "pz"]
             pc.to_parquet(file_path, position_cols=position_cols)
-            loaded_pc = PointCloud.from_parquet(
-                file_path, position_cols=position_cols
-            )
+            loaded_pc = PointCloud.from_parquet(file_path, position_cols=position_cols)
 
             assert loaded_pc.num_points == pc.num_points
             np.testing.assert_array_almost_equal(loaded_pc.points, pc.points)
@@ -226,5 +224,3 @@ class TestPointCloudIONPZ:
                 PointCloud.from_npz_file(
                     file_path, attribute_names=["X", "Y", "Z", "nonexistent"]
                 )
-
-
