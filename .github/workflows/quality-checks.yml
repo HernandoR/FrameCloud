@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+      - 'release/**'
+      - 'release-*'
+    tags:
+      - 'v*'
+      - 'release*'
     paths:
       - 'src/**'
       - 'tests/**'

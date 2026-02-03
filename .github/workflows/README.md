@@ -9,6 +9,8 @@ This directory contains GitHub Actions workflows for continuous integration and 
 - **Python Versions**: 3.10, 3.11, 3.12, 3.13, 3.14t (free-threaded)
 - **Triggers**: 
   - Push to `main` branch
+  - Push to release branches (`release/**`, `release-*`)
+  - Push to version tags (`v*`, `release*`)
   - Pull requests
   - Manual dispatch
 - **Test Command**: `just test-unit`
@@ -19,6 +21,8 @@ This directory contains GitHub Actions workflows for continuous integration and 
 - **Python Version**: 3.12 (stable)
 - **Triggers**:
   - Push to `main` branch
+  - Push to release branches (`release/**`, `release-*`)
+  - Push to version tags (`v*`, `release*`)
   - Manual dispatch
 - **Test Command**: `just test-benchmark`
 - **Duration**: ~10-30 minutes (depends on dataset size)
@@ -29,6 +33,8 @@ This directory contains GitHub Actions workflows for continuous integration and 
 - **Platforms**: macOS-latest, Windows-latest
 - **Triggers**:
   - Push to `main` branch
+  - Push to release branches (`release/**`, `release-*`)
+  - Push to version tags (`v*`, `release*`)
   - Pull requests
   - Manual dispatch
 - **Test Command**: `just test-unit`
@@ -40,6 +46,8 @@ This directory contains GitHub Actions workflows for continuous integration and 
 - **Platforms**: macOS-latest, Windows-latest
 - **Triggers**:
   - Push to `main` branch
+  - Push to release branches (`release/**`, `release-*`)
+  - Push to version tags (`v*`, `release*`)
   - Manual dispatch
 - **Test Command**: `just test-benchmark`
 - **Duration**: ~15-45 minutes per platform
@@ -49,6 +57,8 @@ This directory contains GitHub Actions workflows for continuous integration and 
 - **Python Version**: 3.12
 - **Triggers**:
   - Push to `main` branch
+  - Push to release branches (`release/**`, `release-*`)
+  - Push to version tags (`v*`, `release*`)
   - Pull requests
   - Manual dispatch
 - **Commands**: `just check` (runs lint, format-check, type-check)
