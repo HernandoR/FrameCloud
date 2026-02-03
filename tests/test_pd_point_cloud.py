@@ -45,7 +45,7 @@ class TestPointCloudInitialization:
     def test_invalid_not_dataframe(self):
         """Test that data must be a DataFrame."""
         with pytest.raises(ValidationError):
-            PointCloud(data=[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
+            PointCloud(data=[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])  # type: ignore
 
     def test_empty_point_cloud(self):
         """Test creating an empty point cloud."""
@@ -255,7 +255,7 @@ class TestPointCloudCopy:
         """Test that copy creates a new instance."""
         df = pd.DataFrame({"X": [0.0, 1.0], "Y": [0.0, 1.0], "Z": [0.0, 1.0]})
         pc = PointCloud(data=df)
-        pc_copy = pc.copy()
+        pc_copy = pc.model_copy()
         assert pc is not pc_copy
         assert pc.data is not pc_copy.data
         np.testing.assert_array_equal(pc.points, pc_copy.points)
@@ -266,7 +266,7 @@ class TestPointCloudCopy:
             {"X": [0.0, 1.0], "Y": [0.0, 1.0], "Z": [0.0, 1.0], "colors": [255, 0]}
         )
         pc = PointCloud(data=df)
-        pc_copy = pc.copy()
+        pc_copy = pc.model_copy()
 
         # Modify the copy
         pc_copy.data.loc[0, "X"] = 999.0

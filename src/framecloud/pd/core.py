@@ -168,16 +168,6 @@ class PointCloud(BaseModel):
             logger.debug("New transformed point cloud created.")
             return new_pc
 
-    def copy(self):
-        """Creates a deep copy of the PointCloud.
-
-        Returns:
-            PointCloud: A new instance of PointCloud with copied data.
-        """
-        new_pc = PointCloud(data=self.data.copy())
-        logger.debug("Point cloud copied successfully.")
-        return new_pc
-
     def sample(self, num_samples: int, replace: bool = False) -> "PointCloud":
         """Randomly samples points from the point cloud.
 
@@ -261,7 +251,7 @@ class PointCloud(BaseModel):
     def from_parquet(
         cls,
         file_path: Path | str,
-        position_cols: list[str] = None,
+        position_cols: list[str] | None = None,
     ):
         """Load a PointCloud from a Parquet file.
 
@@ -292,7 +282,7 @@ class PointCloud(BaseModel):
         logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
-    def to_parquet(self, file_path: Path | str, position_cols: list[str] = None):
+    def to_parquet(self, file_path: Path | str, position_cols: list[str] | None = None):
         """Save a PointCloud to a Parquet file.
 
         Args:
@@ -326,7 +316,7 @@ class PointCloud(BaseModel):
     def from_binary_buffer(
         cls,
         bytes_buffer: bytes,
-        attribute_names: list[str] = None,
+        attribute_names: list[str] | None = None,
         dtype=np.float32,
     ):
         """Load a PointCloud from a binary buffer.
@@ -359,7 +349,7 @@ class PointCloud(BaseModel):
 
     def to_binary_buffer(
         self,
-        attribute_names: list[str] = None,
+        attribute_names: list[str] | None = None,
         dtype=np.float32,
     ) -> bytes:
         """Save a PointCloud to a binary buffer.
@@ -389,7 +379,7 @@ class PointCloud(BaseModel):
     def from_binary_file(
         cls,
         file_path: Path | str,
-        attribute_names: list[str] = None,
+        attribute_names: list[str] | None = None,
         dtype=np.float32,
     ):
         """Load a PointCloud from a binary file.
@@ -406,7 +396,7 @@ class PointCloud(BaseModel):
     def to_binary_file(
         self,
         file_path: Path | str,
-        attribute_names: list[str] = None,
+        attribute_names: list[str] | None = None,
         dtype=np.float32,
     ):
         """Save a PointCloud to a binary file.
@@ -427,7 +417,7 @@ class PointCloud(BaseModel):
     def from_numpy_file(
         cls,
         file_path: Path | str,
-        attribute_names: list[str] = None,
+        attribute_names: list[str] | None = None,
         dtype=np.float32,
     ):
         """Load a PointCloud from a NumPy .npy file.
@@ -455,7 +445,7 @@ class PointCloud(BaseModel):
     def to_numpy_file(
         self,
         file_path: Path | str,
-        attribute_names: list[str] = None,
+        attribute_names: list[str] | None = None,
         dtype=np.float32,
     ):
         """Save a PointCloud to a NumPy .npy file.
@@ -483,7 +473,7 @@ class PointCloud(BaseModel):
     def from_npz_file(
         cls,
         file_path: Path | str,
-        attribute_names: list[str] = None,
+        attribute_names: list[str] | None = None,
         dtype=np.float32,
     ):
         """Load a PointCloud from a NumPy .npz file.
@@ -516,7 +506,7 @@ class PointCloud(BaseModel):
     def to_npz_file(
         self,
         file_path: Path | str,
-        attribute_names: list[str] = None,
+        attribute_names: list[str] | None = None,
         dtype=np.float32,
     ):
         """Save a PointCloud to a NumPy .npz file.

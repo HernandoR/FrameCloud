@@ -8,9 +8,10 @@ Note: Protocols are unified - if something can read a format, it can also write 
 """
 
 from pathlib import Path
-from typing import Protocol, Self, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import numpy as np
+from typing_extensions import Self
 
 
 @runtime_checkable
