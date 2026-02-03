@@ -1,0 +1,55 @@
+name: Fast Tests - Ubuntu
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Justfile'
+      - '.github/workflows/test-fast-ubuntu.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Justfile'
+      - '.github/workflows/test-fast-ubuntu.yml'
+  workflow_dispatch:
+
+jobs:
+  test-fast-ubuntu:
+    name: Fast Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14t"]
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.11"
+          enable-cache: "auto"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install just
+        run: uv tool install rust-just
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run fast tests (unit tests only)
+        run: just test-unit

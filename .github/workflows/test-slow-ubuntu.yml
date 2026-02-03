@@ -1,0 +1,43 @@
+name: Slow Tests - Ubuntu
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'tests/test_benchmark.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Justfile'
+      - '.github/workflows/test-slow-ubuntu.yml'
+  workflow_dispatch:
+
+jobs:
+  test-slow-ubuntu:
+    name: Benchmark Tests (Python 3.12)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.11"
+          enable-cache: "auto"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install just
+        run: uv tool install rust-just
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run benchmark tests
+        run: just test-benchmark
