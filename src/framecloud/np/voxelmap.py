@@ -258,7 +258,7 @@ class VoxelMap(BaseModel):
             if custom_aggregation and attr_name in custom_aggregation:
                 # Use custom aggregation function
                 aggregated_values = []
-                for voxel_tuple in [tuple(vc) for vc in self.voxel_coords]:  # type: ignore
+                for voxel_tuple in [tuple(vc) for vc in self.voxel_coords]:
                     point_idx = self.voxel_indices[voxel_tuple]
                     aggregated_value = custom_aggregation[attr_name](
                         attr_values[point_idx]
