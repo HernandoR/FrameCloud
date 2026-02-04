@@ -17,6 +17,7 @@ def benchmark_size(request):
     return request.param
 
 
+@pytest.mark.slow
 @pytest.mark.benchmark
 class TestBenchmarkPointCloudCreation:
     """Benchmark tests for creating large point clouds."""
@@ -46,6 +47,7 @@ class TestBenchmarkPointCloudCreation:
         assert pc.num_points == benchmark_size
 
 
+@pytest.mark.slow
 @pytest.mark.benchmark
 class TestBenchmarkTransformation:
     """Benchmark tests for transforming large point clouds."""
@@ -79,6 +81,7 @@ class TestBenchmarkTransformation:
         assert transformed.num_points == benchmark_size
 
 
+@pytest.mark.slow
 @pytest.mark.benchmark
 class TestBenchmarkSampling:
     """Benchmark tests for sampling large point clouds."""
@@ -108,6 +111,7 @@ class TestBenchmarkSampling:
         assert sampled.num_points == 10000
 
 
+@pytest.mark.slow
 @pytest.mark.benchmark
 class TestBenchmarkIO:
     """Benchmark tests for I/O operations with large point clouds."""
@@ -145,6 +149,7 @@ class TestBenchmarkIO:
             assert loaded.num_points == benchmark_size
 
 
+@pytest.mark.slow
 @pytest.mark.benchmark
 class TestBenchmarkAttributeOperations:
     """Benchmark tests for attribute operations with large point clouds."""
