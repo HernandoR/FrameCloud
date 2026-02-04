@@ -11,8 +11,28 @@ test:
 test-slow:
     uv run pytest --runslow
 
+# Run benchmark tests (excludes slow tests by default)
 benchmark:
-    uv run pytest -m benchmark
+    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only
+
+# Run all benchmarks including slow/large-scale tests
+benchmark-all:
+    uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
+
+# Run benchmarks and compare with previous results
+benchmark-compare:
+    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-compare
+
+# Run benchmarks and save baseline for future comparisons
+benchmark-save:
+    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-save=baseline
+
+# View benchmark histogram in reports/benchmarks/histogram/
+benchmark-view:
+    @echo "Benchmark reports are saved in:"
+    @echo "  - JSON: reports/benchmarks/benchmark.json"
+    @echo "  - Histogram: reports/benchmarks/histogram/"
+    @ls -lh reports/benchmarks/ 2>/dev/null || echo "No benchmark reports found. Run 'just benchmark' first."
 
 # Run tests in parallel (requires pytest-xdist)
 test-parallel:
