@@ -88,8 +88,8 @@ from framecloud.np import PointCloud, VoxelMap
 
 # Create point cloud with attributes
 points = np.array([[0.1, 0.1, 0.1], [0.2, 0.2, 0.2], [0.3, 0.3, 0.3]])
-intensities = np.array([100.0, 200.0, 300.0])
-pc = PointCloud(points=points, attributes={'intensity': intensities})
+intensity = np.array([100.0, 200.0, 300.0])
+pc = PointCloud(points=points, attributes={'intensity': intensity})
 
 # Create voxel map
 voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)

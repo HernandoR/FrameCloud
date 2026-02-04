@@ -127,7 +127,7 @@ class VoxelMap(BaseModel):
                 .reset_index()
                 .astype({"representative_idx": np.int32})
             )
-            # Extract arrays from lists
+            # Extract arrays from lists (pandas agg requires scalar or list return)
             voxel_data["point_indices"] = voxel_data["point_indices"].apply(
                 lambda x: x[0]
             )

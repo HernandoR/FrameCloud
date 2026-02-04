@@ -75,6 +75,7 @@ class TestVoxelMapProperties:
 
     def test_num_voxels_property(self):
         """Test num_voxels property."""
+        np.random.seed(42)
         points = np.random.rand(100, 3) * 10
         pc = PointCloud(points=points)
         voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
@@ -146,6 +147,7 @@ class TestVoxelMapDownsampling:
 
     def test_downsample_preserves_attributes(self):
         """Test that downsampling preserves all attributes."""
+        np.random.seed(42)
         points = np.random.rand(50, 3) * 10
         colors = np.random.randint(0, 255, size=(50, 3))
         intensities = np.random.rand(50) * 1000
@@ -243,6 +245,7 @@ class TestVoxelMapEdgeCases:
 
     def test_large_voxel_size(self):
         """Test with a very large voxel size (all points in one voxel)."""
+        np.random.seed(42)
         points = np.random.rand(20, 3) * 10
         pc = PointCloud(points=points)
         voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=100.0)
