@@ -100,16 +100,18 @@ The benchmarks are organized into several test groups:
 
 ## Configuration
 
-### pytest.ini Configuration
+### Benchmark-Specific Options
 
-The following pytest-benchmark options are configured in `pytest.ini`:
+Benchmark options are configured in the Justfile commands rather than globally in `pytest.ini` to avoid conflicts with regular test runs. Each benchmark command includes:
 
-```ini
+```bash
 --benchmark-autosave          # Automatically save benchmark data
 --benchmark-storage=reports/benchmarks  # Where to store benchmark data
 --benchmark-json=reports/benchmarks/benchmark.json  # JSON report location
 --benchmark-histogram=reports/benchmarks/histogram  # Histogram SVG location
 ```
+
+The `reports/benchmarks` directory is automatically created when running any benchmark command.
 
 ### Benchmark Sizes
 

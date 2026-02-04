@@ -13,19 +13,23 @@ test-slow:
 
 # Run benchmark tests (excludes slow tests by default)
 benchmark:
-    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only
+    @mkdir -p reports/benchmarks
+    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-autosave --benchmark-storage=reports/benchmarks --benchmark-json=reports/benchmarks/benchmark.json --benchmark-histogram=reports/benchmarks/histogram
 
 # Run all benchmarks including slow/large-scale tests
 benchmark-all:
-    uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
+    @mkdir -p reports/benchmarks
+    uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-autosave --benchmark-storage=reports/benchmarks --benchmark-json=reports/benchmarks/benchmark.json --benchmark-histogram=reports/benchmarks/histogram
 
 # Run benchmarks and compare with previous results
 benchmark-compare:
-    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-compare
+    @mkdir -p reports/benchmarks
+    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-autosave --benchmark-storage=reports/benchmarks --benchmark-json=reports/benchmarks/benchmark.json --benchmark-histogram=reports/benchmarks/histogram --benchmark-compare
 
 # Run benchmarks and save baseline for future comparisons
 benchmark-save:
-    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-save=baseline
+    @mkdir -p reports/benchmarks
+    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-autosave --benchmark-storage=reports/benchmarks --benchmark-json=reports/benchmarks/benchmark.json --benchmark-histogram=reports/benchmarks/histogram --benchmark-save=baseline
 
 # View benchmark histogram in reports/benchmarks/histogram/
 benchmark-view:
