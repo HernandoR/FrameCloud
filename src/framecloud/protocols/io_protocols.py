@@ -219,6 +219,7 @@ class NumpyIOProtocol(Protocol):
         ...
 
 
+@runtime_checkable
 class FileIOProtocol(
     LasIOProtocol,
     ParquetIOProtocol,
