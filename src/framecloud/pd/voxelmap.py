@@ -10,12 +10,11 @@ from typing import Any, Callable
 import numpy as np
 import pandas as pd
 from loguru import logger
-from pydantic import BaseModel, Field, field_validator
 
 from framecloud.exceptions import ArrayShapeError
 
 
-class VoxelMap(BaseModel):
+class VoxelMap:
     """A voxel map for spatial downsampling of point clouds using pandas.
 
     The VoxelMap aggregates points into voxels based on a specified voxel size.
@@ -31,28 +30,39 @@ class VoxelMap(BaseModel):
         pointcloud_copy (pd.DataFrame | None): Optional deep copy of point cloud data.
     """
 
-    model_config = {"arbitrary_types_allowed": True}
+    def __init__(
+        self,
+        voxel_size: float,
+        voxel_data: pd.DataFrame,
+        origin: np.ndarray,
+        point_count: int,
+        keep_copy: bool = False,
+        pointcloud_copy: pd.DataFrame | None = None,
+    ):
+        """Initialize a VoxelMap.
 
-    voxel_size: float = Field(..., gt=0, description="Size of each voxel")
-    voxel_data: pd.DataFrame = Field(
-        ...,
-        description="DataFrame with voxel coordinates and metadata",
-    )
-    origin: np.ndarray = Field(..., description="Origin of the voxel grid")
-    point_count: int = Field(..., ge=0, description="Number of points in source cloud")
-    keep_copy: bool = Field(
-        default=False, description="Whether to keep a copy of point cloud data"
-    )
-    pointcloud_copy: pd.DataFrame | None = Field(
-        default=None, description="Optional copy of point cloud data"
-    )
-
-    @field_validator("origin")
-    def validate_origin(cls, v):
-        if v.shape != (3,):
+        Args:
+            voxel_size: Size of each voxel (must be > 0).
+            voxel_data: DataFrame with voxel coordinates and metadata.
+            origin: Origin of the voxel grid (3D coordinates).
+            point_count: Number of points in source cloud (must be >= 0).
+            keep_copy: Whether to keep a copy of point cloud data.
+            pointcloud_copy: Optional copy of point cloud data.
+        """
+        if voxel_size <= 0:
+            raise ValueError("voxel_size must be greater than 0")
+        if point_count < 0:
+            raise ValueError("point_count must be >= 0")
+        if origin.shape != (3,):
             logger.error("Origin must be a 3D coordinate.")
             raise ArrayShapeError("Origin must be a 3D coordinate.")
-        return v
+
+        self.voxel_size = voxel_size
+        self.voxel_data = voxel_data
+        self.origin = origin
+        self.point_count = point_count
+        self.keep_copy = keep_copy
+        self.pointcloud_copy = pointcloud_copy
 
     @classmethod
     def from_pointcloud(

@@ -8,12 +8,11 @@ from typing import Any, Callable
 
 import numpy as np
 from loguru import logger
-from pydantic import BaseModel, Field, field_validator
 
 from framecloud.exceptions import ArrayShapeError
 
 
-class VoxelMap(BaseModel):
+class VoxelMap:
     """A voxel map for spatial downsampling of point clouds.
 
     The VoxelMap aggregates points into voxels based on a specified voxel size.
@@ -31,40 +30,48 @@ class VoxelMap(BaseModel):
         pointcloud_copy (dict | None): Optional deep copy of point cloud data.
     """
 
-    model_config = {"arbitrary_types_allowed": True}
+    def __init__(
+        self,
+        voxel_size: float,
+        voxel_coords: np.ndarray,
+        voxel_indices: dict[tuple[int, int, int], np.ndarray],
+        representative_indices: np.ndarray,
+        origin: np.ndarray,
+        point_count: int,
+        keep_copy: bool = False,
+        pointcloud_copy: dict[str, Any] | None = None,
+    ):
+        """Initialize a VoxelMap.
 
-    voxel_size: float = Field(..., gt=0, description="Size of each voxel")
-    voxel_coords: np.ndarray = Field(
-        ..., description="Unique voxel coordinates (Nx3 array)"
-    )
-    voxel_indices: dict[tuple[int, int, int], np.ndarray] = Field(
-        default_factory=dict, description="Mapping from voxel coords to point indices"
-    )
-    representative_indices: np.ndarray = Field(
-        ..., description="Representative point index for each voxel"
-    )
-    origin: np.ndarray = Field(..., description="Origin of the voxel grid")
-    point_count: int = Field(..., ge=0, description="Number of points in source cloud")
-    keep_copy: bool = Field(
-        default=False, description="Whether to keep a copy of point cloud data"
-    )
-    pointcloud_copy: dict[str, Any] | None = Field(
-        default=None, description="Optional copy of point cloud data"
-    )
-
-    @field_validator("voxel_coords")
-    def validate_voxel_coords(cls, v):
-        if v.ndim != 2 or v.shape[1] != 3:
+        Args:
+            voxel_size: Size of each voxel (must be > 0).
+            voxel_coords: Nx3 array of unique voxel coordinates.
+            voxel_indices: Mapping from voxel coords to point indices.
+            representative_indices: Representative point index for each voxel.
+            origin: Origin of the voxel grid (3D coordinates).
+            point_count: Number of points in source cloud (must be >= 0).
+            keep_copy: Whether to keep a copy of point cloud data.
+            pointcloud_copy: Optional copy of point cloud data.
+        """
+        if voxel_size <= 0:
+            raise ValueError("voxel_size must be greater than 0")
+        if point_count < 0:
+            raise ValueError("point_count must be >= 0")
+        if voxel_coords.ndim != 2 or voxel_coords.shape[1] != 3:
             logger.error("Voxel coordinates must be of shape Nx3.")
             raise ArrayShapeError("Voxel coordinates must be of shape Nx3.")
-        return v
-
-    @field_validator("origin")
-    def validate_origin(cls, v):
-        if v.shape != (3,):
+        if origin.shape != (3,):
             logger.error("Origin must be a 3D coordinate.")
             raise ArrayShapeError("Origin must be a 3D coordinate.")
-        return v
+
+        self.voxel_size = voxel_size
+        self.voxel_coords = voxel_coords
+        self.voxel_indices = voxel_indices
+        self.representative_indices = representative_indices
+        self.origin = origin
+        self.point_count = point_count
+        self.keep_copy = keep_copy
+        self.pointcloud_copy = pointcloud_copy
 
     @classmethod
     def from_pointcloud(
