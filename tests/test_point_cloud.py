@@ -250,7 +250,7 @@ class TestPointCloudCopy:
         """Test that copy creates a new instance."""
         points = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
         pc = PointCloud(points=points)
-        pc_copy = pc.model_copy()
+        pc_copy = pc.model_copy(deep=True)
         assert pc is not pc_copy
         np.testing.assert_array_equal(pc.points, pc_copy.points)
 
@@ -259,7 +259,7 @@ class TestPointCloudCopy:
         points = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
         colors = np.array([[255, 0, 0], [0, 255, 0]])
         pc = PointCloud(points=points, attributes={"colors": colors})
-        pc_copy = pc.model_copy()
+        pc_copy = pc.model_copy(deep=True)
 
         # Modify the copy
         pc_copy.points[0, 0] = 999.0
