@@ -85,6 +85,14 @@ This project uses a modern, high-performance Python toolchain. Please adhere to 
   - `<ext>` is the file extension (e.g., `.md`, `.txt`)
 - **Example**: `agc/20260202_01_implementation_summary.md`, `agc/20260202_03_protocol_architecture.md`
 
+## MCP and Agent selection
+
+- **MCP**: Use 'context7' to retrive the latest documentation for any tool, library or framework used in the project.
+- **Agent**:
+  - "Gemini 3+" is the preferred agent for _planning and document generation_ tasks.
+  - "Claude 4.5 Ops" is the preferred agent for code _generation and modification_ tasks.
+  - "GPT-5.2" series is perferred for _reviewing_ code, tests, and commit messages.
+
 ## Additional Guidelines
 
 For detailed guidance on specific topics, refer to these supplementary instruction files:
