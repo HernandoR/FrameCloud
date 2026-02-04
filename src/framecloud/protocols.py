@@ -217,3 +217,48 @@ class NumpyIOProtocol(Protocol):
             dtype: NumPy data type for the array.
         """
         ...
+
+
+class FileIOProtocol(
+    LasIOProtocol,
+    ParquetIOProtocol,
+    BinaryIOProtocol,
+    NumpyIOProtocol,
+):
+    """Combined Protocol for all file I/O operations."""
+
+    def from_file(cls, file_path: Path | str, *args, **kwargs) -> Self:
+        """Generic method to load a PointCloud from a file based on extension.
+
+        Args:
+            file_path: Path to the input file.
+        """
+        suffix = Path(file_path).suffix.lower()
+        if suffix in [".las", ".laz"]:
+            return cls.from_las(file_path, *args, **kwargs)
+        elif suffix == ".parquet":
+            return cls.from_parquet(file_path, *args, **kwargs)
+        elif suffix == ".npy":
+            return cls.from_numpy_file(file_path, *args, **kwargs)
+        elif suffix == ".npz":
+            return cls.from_npz_file(file_path, *args, **kwargs)
+        else:
+            raise ValueError(f"Unsupported file extension: {suffix}")
+
+    def to_file(self, file_path: Path | str, *args, **kwargs) -> None:
+        """Generic method to save this PointCloud to a file based on extension.
+
+        Args:
+            file_path: Path to the output file.
+        """
+        suffix = Path(file_path).suffix.lower()
+        if suffix in [".las", ".laz"]:
+            self.to_las(file_path, *args, **kwargs)
+        elif suffix == ".parquet":
+            self.to_parquet(file_path, *args, **kwargs)
+        elif suffix == ".npy":
+            self.to_numpy_file(file_path, *args, **kwargs)
+        elif suffix == ".npz":
+            self.to_npz_file(file_path, *args, **kwargs)
+        else:
+            raise ValueError(f"Unsupported file extension: {suffix}")
