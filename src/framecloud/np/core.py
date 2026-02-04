@@ -195,7 +195,6 @@ class PointCloud(BaseModel):
             new_pc = PointCloud(
                 points=transformed_points[:, :3], attributes=self.attributes.copy()
             )
-            logger.debug("New transformed point cloud created.")
             return new_pc
 
     def sample(self, num_samples: int, replace: bool = False) -> "PointCloud":

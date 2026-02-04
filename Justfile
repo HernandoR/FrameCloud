@@ -11,6 +11,9 @@ test:
 test-slow:
     uv run pytest --runslow
 
+benchmark:
+    uv run pytest -m benchmark
+
 # Run tests in parallel (requires pytest-xdist)
 test-parallel:
     uv run pytest -n auto
