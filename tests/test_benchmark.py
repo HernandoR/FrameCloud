@@ -198,29 +198,35 @@ class TestBenchmarkAttributeOperations:
 
     def test_np_add_attribute(self, benchmark, small_benchmark_size):
         """Benchmark adding attributes with numpy implementation."""
-        np.random.seed(42)
-        points = np.random.randn(small_benchmark_size, 3).astype(np.float32)
-        pc = NpPointCloud(points=points)
-        new_attr = np.random.rand(small_benchmark_size).astype(np.float32)
+        def add_attribute():
+            np.random.seed(42)
+            points = np.random.randn(small_benchmark_size, 3).astype(np.float32)
+            pc = NpPointCloud(points=points)
+            new_attr = np.random.rand(small_benchmark_size).astype(np.float32)
+            pc.add_attribute("new_attribute", new_attr)
+            return pc
 
-        benchmark(pc.add_attribute, "new_attribute", new_attr)
-        assert "new_attribute" in pc.attribute_names
+        result = benchmark(add_attribute)
+        assert "new_attribute" in result.attribute_names
 
     def test_pd_add_attribute(self, benchmark, small_benchmark_size):
         """Benchmark adding attributes with pandas implementation."""
-        np.random.seed(42)
-        df = pd.DataFrame(
-            {
-                "X": np.random.randn(small_benchmark_size).astype(np.float32),
-                "Y": np.random.randn(small_benchmark_size).astype(np.float32),
-                "Z": np.random.randn(small_benchmark_size).astype(np.float32),
-            }
-        )
-        pc = PdPointCloud(data=df)
-        new_attr = np.random.rand(small_benchmark_size).astype(np.float32)
+        def add_attribute():
+            np.random.seed(42)
+            df = pd.DataFrame(
+                {
+                    "X": np.random.randn(small_benchmark_size).astype(np.float32),
+                    "Y": np.random.randn(small_benchmark_size).astype(np.float32),
+                    "Z": np.random.randn(small_benchmark_size).astype(np.float32),
+                }
+            )
+            pc = PdPointCloud(data=df)
+            new_attr = np.random.rand(small_benchmark_size).astype(np.float32)
+            pc.add_attribute("new_attribute", new_attr)
+            return pc
 
-        benchmark(pc.add_attribute, "new_attribute", new_attr)
-        assert "new_attribute" in pc.attribute_names
+        result = benchmark(add_attribute)
+        assert "new_attribute" in result.attribute_names
 
 
 @pytest.mark.slow
