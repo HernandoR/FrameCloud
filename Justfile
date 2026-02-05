@@ -36,7 +36,7 @@ lint:
 
 # Check formatting without making changes
 format:
-    uvx ruff format --check src tests
+    uvx ruff format
 
 # Type check with ty
 type-check: install
