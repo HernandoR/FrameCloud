@@ -40,6 +40,7 @@ class TestBenchmarkPointCloudCreation:
 
     def test_np_create_pointcloud(self, benchmark, small_benchmark_size):
         """Benchmark creating point cloud with numpy."""
+
         def create_np_pointcloud():
             np.random.seed(42)
             points = np.random.randn(small_benchmark_size, 3).astype(np.float32)
@@ -51,6 +52,7 @@ class TestBenchmarkPointCloudCreation:
 
     def test_pd_create_pointcloud(self, benchmark, small_benchmark_size):
         """Benchmark creating point cloud with pandas."""
+
         def create_pd_pointcloud():
             np.random.seed(42)
             df = pd.DataFrame(
@@ -58,7 +60,9 @@ class TestBenchmarkPointCloudCreation:
                     "X": np.random.randn(small_benchmark_size).astype(np.float32),
                     "Y": np.random.randn(small_benchmark_size).astype(np.float32),
                     "Z": np.random.randn(small_benchmark_size).astype(np.float32),
-                    "intensities": np.random.rand(small_benchmark_size).astype(np.float32),
+                    "intensities": np.random.rand(small_benchmark_size).astype(
+                        np.float32
+                    ),
                 }
             )
             return PdPointCloud(data=df)
@@ -198,6 +202,7 @@ class TestBenchmarkAttributeOperations:
 
     def test_np_add_attribute(self, benchmark, small_benchmark_size):
         """Benchmark adding attributes with numpy implementation."""
+
         def add_attribute():
             np.random.seed(42)
             points = np.random.randn(small_benchmark_size, 3).astype(np.float32)
@@ -211,6 +216,7 @@ class TestBenchmarkAttributeOperations:
 
     def test_pd_add_attribute(self, benchmark, small_benchmark_size):
         """Benchmark adding attributes with pandas implementation."""
+
         def add_attribute():
             np.random.seed(42)
             df = pd.DataFrame(
@@ -233,13 +239,14 @@ class TestBenchmarkAttributeOperations:
 @pytest.mark.benchmark(group="large-scale")
 class TestBenchmarkLargeScale:
     """Benchmark tests for very large point clouds (10M+ points).
-    
+
     These tests are marked as 'slow' and should be run separately with:
         uv run pytest -m "slow and benchmark" --benchmark-only
     """
 
     def test_np_create_large_pointcloud(self, benchmark, large_benchmark_size):
         """Benchmark creating very large point cloud with numpy."""
+
         def create_large_np_pointcloud():
             np.random.seed(42)
             points = np.random.randn(large_benchmark_size, 3).astype(np.float32)
@@ -251,6 +258,7 @@ class TestBenchmarkLargeScale:
 
     def test_pd_create_large_pointcloud(self, benchmark, large_benchmark_size):
         """Benchmark creating very large point cloud with pandas."""
+
         def create_large_pd_pointcloud():
             np.random.seed(42)
             df = pd.DataFrame(
@@ -258,7 +266,9 @@ class TestBenchmarkLargeScale:
                     "X": np.random.randn(large_benchmark_size).astype(np.float32),
                     "Y": np.random.randn(large_benchmark_size).astype(np.float32),
                     "Z": np.random.randn(large_benchmark_size).astype(np.float32),
-                    "intensities": np.random.rand(large_benchmark_size).astype(np.float32),
+                    "intensities": np.random.rand(large_benchmark_size).astype(
+                        np.float32
+                    ),
                 }
             )
             return PdPointCloud(data=df)
