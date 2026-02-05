@@ -221,10 +221,12 @@ class TestVoxelMapCopyBehavior:
         # Without copy
         voxelmap1 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, keep_copy=False)
         assert voxelmap1.pointcloud is pc  # Should be same reference
+        assert not voxelmap1.is_copy  # Should not be a copy
 
         # With copy
         voxelmap2 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, keep_copy=True)
         assert voxelmap2.pointcloud is not pc  # Should be different reference
+        assert voxelmap2.is_copy  # Should be a copy
         # But data should be equal
         np.testing.assert_array_equal(voxelmap2.pointcloud.points, pc.points)
 
