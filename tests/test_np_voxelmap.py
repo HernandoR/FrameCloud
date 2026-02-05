@@ -136,7 +136,7 @@ class TestVoxelMapDownsampling:
         voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         # Use mean aggregation for intensities
-        custom_agg = {"intensities": lambda x: np.mean(x)}
+        custom_agg = {"intensities": np.mean}
         downsampled = voxelmap.export_pointcloud(custom_aggregation=custom_agg)
 
         assert downsampled.num_points == 1
@@ -270,3 +270,29 @@ class TestVoxelMapEdgeCases:
 
         assert voxelmap.num_voxels == 3
         assert voxelmap.origin[0] == -1.0
+
+    def test_show_progress_parameter(self):
+        """Test show_progress parameter controls progress bar display."""
+        points = np.random.rand(100, 3) * 10
+        pc = PointCloud(points=points)
+        
+        # Test with progress bar disabled
+        voxelmap1 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=False)
+        assert voxelmap1.num_voxels > 0
+        
+        # Test with progress bar enabled (default)
+        voxelmap2 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=True)
+        assert voxelmap2.num_voxels > 0
+        
+        # Both should produce same results
+        assert voxelmap1.num_voxels == voxelmap2.num_voxels
+
+    def test_empty_voxelmap_export(self):
+        """Test exporting from empty voxel map."""
+        points = np.empty((0, 3))
+        pc = PointCloud(points=points, attributes={})
+        voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
+        
+        downsampled = voxelmap.export_pointcloud()
+        assert downsampled.num_points == 0
+        assert downsampled.points.shape == (0, 3)

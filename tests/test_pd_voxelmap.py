@@ -323,6 +323,67 @@ class TestVoxelMapEdgeCases:
         assert voxelmap.num_voxels == 3
         assert voxelmap.origin[0] == -1.0
 
+    def test_show_progress_parameter(self):
+        """Test show_progress parameter."""
+        data = pd.DataFrame(
+            {
+                "X": np.random.rand(100) * 10,
+                "Y": np.random.rand(100) * 10,
+                "Z": np.random.rand(100) * 10,
+            }
+        )
+        pc = PointCloud(data=data)
+        
+        # Test with progress bar disabled
+        voxelmap1 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=False)
+        assert voxelmap1.num_voxels > 0
+        
+        # Test with progress bar enabled (default)
+        voxelmap2 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=True)
+        assert voxelmap2.num_voxels > 0
+        
+        # Both should produce same results
+        assert voxelmap1.num_voxels == voxelmap2.num_voxels
+
+    def test_empty_voxelmap_export(self):
+        """Test exporting from empty voxel map."""
+        data = pd.DataFrame({"X": [], "Y": [], "Z": []})
+        pc = PointCloud(data=data)
+        voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
+        
+        downsampled = voxelmap.export_pointcloud()
+        assert len(downsampled.data) == 0
+
+    def test_coordinate_column_protection(self):
+        """Test that coordinate columns cannot be overridden in custom_aggregation."""
+        data = pd.DataFrame(
+            {
+                "X": [0.0, 0.5, 1.0],
+                "Y": [0.0, 0.5, 1.0],
+                "Z": [0.0, 0.5, 1.0],
+                "intensity": [100.0, 200.0, 300.0],
+            }
+        )
+        pc = PointCloud(data=data)
+        voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
+        
+        # Should raise ValueError when trying to aggregate coordinate columns
+        import pytest
+        with pytest.raises(ValueError, match="coordinate columns"):
+            voxelmap.export_pointcloud(
+                custom_aggregation={"X": lambda x: x.mean()}
+            )
+        
+        with pytest.raises(ValueError, match="coordinate columns"):
+            voxelmap.export_pointcloud(
+                custom_aggregation={"Y": lambda x: x.mean(), "intensity": lambda x: x.mean()}
+            )
+        
+        with pytest.raises(ValueError, match="coordinate columns"):
+            voxelmap.export_pointcloud(
+                custom_aggregation={"Z": lambda x: x.mean()}
+            )
+
     def test_dataframe_with_extra_attributes(self):
         """Test with DataFrame containing multiple attributes."""
         data = pd.DataFrame(

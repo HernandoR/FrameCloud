@@ -76,6 +76,7 @@ class VoxelMap:
         pointcloud: PointCloud,
         voxel_size: float,
         keep_copy: bool = False,
+        show_progress: bool = True,
     ) -> "VoxelMap":
         """Create a VoxelMap from a PointCloud.
 
@@ -83,6 +84,7 @@ class VoxelMap:
             pointcloud: The input PointCloud object.
             voxel_size: Size of each voxel.
             keep_copy: Whether to keep a deep copy of the point cloud data.
+            show_progress: Whether to show progress bar during construction.
 
         Returns:
             VoxelMap: The created voxel map.
@@ -115,10 +117,13 @@ class VoxelMap:
             voxel_coords_all, axis=0, return_inverse=True
         )
 
-        # Build mapping from voxel coordinates to point indices (with progress bar)
+        # Build mapping from voxel coordinates to point indices (with optional progress bar)
         voxel_indices = {}
         logger.info(f"Grouping {num_points} points into {len(unique_voxels)} voxels")
-        for voxel_idx in tqdm(range(len(unique_voxels)), desc="Building voxel map"):
+        iterator = range(len(unique_voxels))
+        if show_progress:
+            iterator = tqdm(iterator, desc="Building voxel map")
+        for voxel_idx in iterator:
             point_mask = inverse_indices == voxel_idx
             voxel_tuple = tuple(unique_voxels[voxel_idx])
             voxel_indices[voxel_tuple] = np.where(point_mask)[0]
@@ -190,48 +195,56 @@ class VoxelMap:
         Returns:
             A new downsampled PointCloud.
         """
+        # Handle empty voxel map
+        if self.num_voxels == 0:
+            logger.warning("Empty voxel map, returning empty point cloud")
+            return PointCloud(points=np.empty((0, 3)), attributes={})
+
         points = self.pointcloud.points
-        downsampled_points = []
-        downsampled_attributes = {name: [] for name in self.pointcloud.attributes.keys()}
-
-        # Process each voxel
-        for voxel_coord in self.voxel_coords:
-            voxel_tuple = tuple(voxel_coord)
-            point_idx = self.voxel_indices[voxel_tuple]
-
-            # Determine representative point based on aggregation method
-            if aggregation_method == "first":
-                representative_idx = point_idx[0]
-            elif aggregation_method == "nearest_to_center":
-                # Calculate voxel center
-                voxel_center = self.origin + (voxel_coord + 0.5) * self.voxel_size
+        
+        # Determine representative indices for all voxels (vectorized where possible)
+        representative_indices = np.zeros(self.num_voxels, dtype=np.int32)
+        
+        if aggregation_method == "first":
+            # Simply get first index from each voxel
+            for i, voxel_coord in enumerate(self.voxel_coords):
+                voxel_tuple = tuple(voxel_coord)
+                representative_indices[i] = self.voxel_indices[voxel_tuple][0]
+        elif aggregation_method == "nearest_to_center":
+            # Calculate all voxel centers at once
+            voxel_centers = self.origin + (self.voxel_coords + 0.5) * self.voxel_size
+            
+            # For each voxel, find nearest point
+            for i, (voxel_coord, voxel_center) in enumerate(zip(self.voxel_coords, voxel_centers)):
+                voxel_tuple = tuple(voxel_coord)
+                point_idx = self.voxel_indices[voxel_tuple]
                 # Use squared distance (avoid sqrt)
                 squared_distances = np.sum(
                     (points[point_idx] - voxel_center) ** 2, axis=1
                 )
-                representative_idx = point_idx[np.argmin(squared_distances)]
-            else:
-                raise ValueError(f"Unknown aggregation method: {aggregation_method}")
-
-            # Aggregate point
-            downsampled_points.append(points[representative_idx])
-
-            # Aggregate attributes
-            for attr_name, attr_values in self.pointcloud.attributes.items():
-                if custom_aggregation and attr_name in custom_aggregation:
-                    # Use custom aggregation function
-                    aggregated_value = custom_aggregation[attr_name](
+                representative_indices[i] = point_idx[np.argmin(squared_distances)]
+        else:
+            raise ValueError(f"Unknown aggregation method: {aggregation_method}")
+        
+        # Get representative points (vectorized)
+        downsampled_points = points[representative_indices]
+        
+        # Aggregate attributes (vectorized where possible)
+        downsampled_attributes = {}
+        for attr_name, attr_values in self.pointcloud.attributes.items():
+            if custom_aggregation and attr_name in custom_aggregation:
+                # Use custom aggregation function (requires iteration per voxel)
+                aggregated_values = np.zeros(self.num_voxels, dtype=attr_values.dtype)
+                for i, voxel_coord in enumerate(self.voxel_coords):
+                    voxel_tuple = tuple(voxel_coord)
+                    point_idx = self.voxel_indices[voxel_tuple]
+                    aggregated_values[i] = custom_aggregation[attr_name](
                         attr_values[point_idx]
                     )
-                else:
-                    # Use representative point's attribute
-                    aggregated_value = attr_values[representative_idx]
-                downsampled_attributes[attr_name].append(aggregated_value)
-
-        # Convert to numpy arrays
-        downsampled_points = np.array(downsampled_points)
-        for attr_name in downsampled_attributes:
-            downsampled_attributes[attr_name] = np.array(downsampled_attributes[attr_name])
+                downsampled_attributes[attr_name] = aggregated_values
+            else:
+                # Use representative point's attribute (vectorized)
+                downsampled_attributes[attr_name] = attr_values[representative_indices]
 
         logger.info(
             f"Exported point cloud from {self.pointcloud.num_points} to "
