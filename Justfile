@@ -27,7 +27,7 @@ format:
     uvx ruff format --check src tests
 
 # Type check with ty
-type-check:
+type-check: install
     uvx ty check
 
 # Run all quality checks (lint, format, type-check)
