@@ -201,10 +201,10 @@ class VoxelMap:
             return PointCloud(points=np.empty((0, 3)), attributes={})
 
         points = self.pointcloud.points
-        
+
         # Determine representative indices for all voxels (vectorized where possible)
         representative_indices = np.zeros(self.num_voxels, dtype=np.int32)
-        
+
         if aggregation_method == "first":
             # Simply get first index from each voxel
             for i, voxel_coord in enumerate(self.voxel_coords):
@@ -213,9 +213,11 @@ class VoxelMap:
         elif aggregation_method == "nearest_to_center":
             # Calculate all voxel centers at once
             voxel_centers = self.origin + (self.voxel_coords + 0.5) * self.voxel_size
-            
+
             # For each voxel, find nearest point
-            for i, (voxel_coord, voxel_center) in enumerate(zip(self.voxel_coords, voxel_centers)):
+            for i, (voxel_coord, voxel_center) in enumerate(
+                zip(self.voxel_coords, voxel_centers)
+            ):
                 voxel_tuple = tuple(voxel_coord)
                 point_idx = self.voxel_indices[voxel_tuple]
                 # Use squared distance (avoid sqrt)
@@ -225,10 +227,10 @@ class VoxelMap:
                 representative_indices[i] = point_idx[np.argmin(squared_distances)]
         else:
             raise ValueError(f"Unknown aggregation method: {aggregation_method}")
-        
+
         # Get representative points (vectorized)
         downsampled_points = points[representative_indices]
-        
+
         # Aggregate attributes (vectorized where possible)
         downsampled_attributes = {}
         for attr_name, attr_values in self.pointcloud.attributes.items():
