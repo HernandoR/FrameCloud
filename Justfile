@@ -5,7 +5,7 @@ default:
     @just --list
 
 # Run all tests
-test:
+test: _create_report_structure
     uv run pytest
 
 test-slow:
@@ -17,19 +17,19 @@ _create_report_structure:
 
 # Run benchmark tests (excludes slow tests by default)
 benchmark: _create_report_structure
-    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-autosave --benchmark-storage=reports/benchmarks --benchmark-json=reports/benchmarks/benchmark.json --benchmark-histogram=reports/benchmarks/histogram
+    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only
 
 # Run all benchmarks including slow/large-scale tests
 benchmark-all: _create_report_structure
-    uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-autosave --benchmark-storage=reports/benchmarks --benchmark-json=reports/benchmarks/benchmark.json --benchmark-histogram=reports/benchmarks/histogram
+    uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
 
 # Run benchmarks and compare with previous results
 benchmark-compare: _create_report_structure
-    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-autosave --benchmark-storage=reports/benchmarks --benchmark-json=reports/benchmarks/benchmark.json --benchmark-histogram=reports/benchmarks/histogram --benchmark-compare
+    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-compare
 
 # Run benchmarks and save baseline for future comparisons
 benchmark-save: _create_report_structure
-    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-autosave --benchmark-storage=reports/benchmarks --benchmark-json=reports/benchmarks/benchmark.json --benchmark-histogram=reports/benchmarks/histogram --benchmark-save=baseline
+    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-save=baseline
 
 # View benchmark histogram in reports/benchmarks/histogram/
 benchmark-view:
