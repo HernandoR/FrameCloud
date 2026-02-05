@@ -17,17 +17,14 @@ class VoxelMap:
 
     The VoxelMap aggregates points into voxels based on a specified voxel size.
     It tracks which points belong to each voxel and can aggregate attributes
-    using various strategies (nearest to center by default).
+    using various strategies during export.
 
     Attributes:
         voxel_size (float): The size of each voxel (uniform in all dimensions).
         voxel_coords (np.ndarray): Nx3 array of voxel coordinates for each unique voxel.
-        voxel_indices (dict): Mapping from voxel coordinate tuple to list of point indices.
-        representative_indices (np.ndarray): Index of the representative point for each voxel.
+        voxel_indices (dict): Mapping from voxel coordinate tuple to array of point indices.
         origin (np.ndarray): The origin point of the voxel grid (3D coordinates).
-        point_count (int): Original number of points used to create the voxel map.
-        keep_copy (bool): Whether to keep a deep copy of the point cloud data.
-        pointcloud_copy (dict | None): Optional deep copy of point cloud data.
+        pointcloud: Reference to the source PointCloud (mutable reference or deep copy).
     """
 
     def __init__(
@@ -35,11 +32,8 @@ class VoxelMap:
         voxel_size: float,
         voxel_coords: np.ndarray,
         voxel_indices: dict[tuple[int, int, int], np.ndarray],
-        representative_indices: np.ndarray,
         origin: np.ndarray,
-        point_count: int,
-        keep_copy: bool = False,
-        pointcloud_copy: dict[str, Any] | None = None,
+        pointcloud: "PointCloud",  # type: ignore # noqa: F821
     ):
         """Initialize a VoxelMap.
 
@@ -47,16 +41,11 @@ class VoxelMap:
             voxel_size: Size of each voxel (must be > 0).
             voxel_coords: Nx3 array of unique voxel coordinates.
             voxel_indices: Mapping from voxel coords to point indices.
-            representative_indices: Representative point index for each voxel.
             origin: Origin of the voxel grid (3D coordinates).
-            point_count: Number of points in source cloud (must be >= 0).
-            keep_copy: Whether to keep a copy of point cloud data.
-            pointcloud_copy: Optional copy of point cloud data.
+            pointcloud: Reference to the PointCloud (either mutable ref or deep copy).
         """
         if voxel_size <= 0:
             raise ValueError("voxel_size must be greater than 0")
-        if point_count < 0:
-            raise ValueError("point_count must be >= 0")
         if voxel_coords.ndim != 2 or voxel_coords.shape[1] != 3:
             logger.error("Voxel coordinates must be of shape Nx3.")
             raise ArrayShapeError("Voxel coordinates must be of shape Nx3.")
@@ -67,18 +56,14 @@ class VoxelMap:
         self.voxel_size = voxel_size
         self.voxel_coords = voxel_coords
         self.voxel_indices = voxel_indices
-        self.representative_indices = representative_indices
         self.origin = origin
-        self.point_count = point_count
-        self.keep_copy = keep_copy
-        self.pointcloud_copy = pointcloud_copy
+        self.pointcloud = pointcloud
 
     @classmethod
     def from_pointcloud(
         cls,
         pointcloud: "PointCloud",  # type: ignore # noqa: F821
         voxel_size: float,
-        aggregation_method: str = "nearest_to_center",
         keep_copy: bool = False,
     ) -> "VoxelMap":
         """Create a VoxelMap from a PointCloud.
@@ -86,33 +71,27 @@ class VoxelMap:
         Args:
             pointcloud: The input PointCloud object.
             voxel_size: Size of each voxel.
-            aggregation_method: Method to select representative point.
-                - "nearest_to_center": Select point nearest to voxel center (default)
-                - "first": Select first point in each voxel
             keep_copy: Whether to keep a deep copy of the point cloud data.
 
         Returns:
             VoxelMap: The created voxel map.
         """
-        logger.info(
-            f"Creating VoxelMap with voxel_size={voxel_size}, "
-            f"aggregation_method={aggregation_method}"
-        )
+        logger.info(f"Creating VoxelMap with voxel_size={voxel_size}")
 
         points = pointcloud.points
         num_points = points.shape[0]
 
         if num_points == 0:
             logger.warning("Empty point cloud provided.")
+            from framecloud.np.core import PointCloud
+
+            empty_pc = PointCloud(points=np.empty((0, 3)), attributes={})
             return cls(
                 voxel_size=voxel_size,
                 voxel_coords=np.empty((0, 3), dtype=np.int32),
                 voxel_indices={},
-                representative_indices=np.empty(0, dtype=np.int32),
                 origin=np.zeros(3),
-                point_count=0,
-                keep_copy=keep_copy,
-                pointcloud_copy=None,
+                pointcloud=empty_pc,
             )
 
         # Calculate origin (minimum coordinates)
@@ -121,35 +100,30 @@ class VoxelMap:
         # Convert points to voxel coordinates
         voxel_coords_all = np.floor((points - origin) / voxel_size).astype(np.int32)
 
-        # Find unique voxels and their indices
+        # Find unique voxels and their indices (vectorized)
         unique_voxels, inverse_indices = np.unique(
             voxel_coords_all, axis=0, return_inverse=True
         )
 
-        # Build mapping from voxel coordinates to point indices
+        # Build mapping from voxel coordinates to point indices (vectorized)
         voxel_indices = {}
-        for i in range(len(unique_voxels)):
-            voxel_tuple = tuple(unique_voxels[i])
-            point_mask = inverse_indices == i
+        # Group point indices by voxel using vectorized operations
+        for voxel_idx in range(len(unique_voxels)):
+            point_mask = inverse_indices == voxel_idx
+            voxel_tuple = tuple(unique_voxels[voxel_idx])
             voxel_indices[voxel_tuple] = np.where(point_mask)[0]
 
-        # Select representative points for each voxel
-        representative_indices = cls._compute_representative_indices(
-            points,
-            unique_voxels,
-            voxel_indices,
-            origin,
-            voxel_size,
-            aggregation_method,
-        )
-
-        # Optionally keep a copy of the point cloud
-        pointcloud_copy = None
+        # Handle point cloud reference
         if keep_copy:
-            pointcloud_copy = {
-                "points": points.copy(),
-                "attributes": {k: v.copy() for k, v in pointcloud.attributes.items()},
-            }
+            from framecloud.np.core import PointCloud
+
+            # Create a deep copy
+            copied_points = points.copy()
+            copied_attributes = {k: v.copy() for k, v in pointcloud.attributes.items()}
+            pc_ref = PointCloud(points=copied_points, attributes=copied_attributes)
+        else:
+            # Keep mutable reference
+            pc_ref = pointcloud
 
         logger.info(
             f"Created VoxelMap with {len(unique_voxels)} voxels "
@@ -160,52 +134,48 @@ class VoxelMap:
             voxel_size=voxel_size,
             voxel_coords=unique_voxels,
             voxel_indices=voxel_indices,
-            representative_indices=representative_indices,
             origin=origin,
-            point_count=num_points,
-            keep_copy=keep_copy,
-            pointcloud_copy=pointcloud_copy,
+            pointcloud=pc_ref,
         )
 
-    @staticmethod
     def _compute_representative_indices(
-        points: np.ndarray,
-        unique_voxels: np.ndarray,
-        voxel_indices: dict[tuple[int, int, int], np.ndarray],
-        origin: np.ndarray,
-        voxel_size: float,
-        method: str,
+        self, aggregation_method: str = "nearest_to_center"
     ) -> np.ndarray:
         """Compute representative point indices for each voxel.
 
         Args:
-            points: Point coordinates (Nx3 array).
-            unique_voxels: Unique voxel coordinates.
-            voxel_indices: Mapping from voxel coords to point indices.
-            origin: Origin of the voxel grid.
-            voxel_size: Size of each voxel.
-            method: Aggregation method ("nearest_to_center" or "first").
+            aggregation_method: Method to select representative point.
+                - "nearest_to_center": Select point nearest to voxel center (default)
+                - "first": Select first point in each voxel
 
         Returns:
             Array of representative point indices.
         """
-        representative_indices = np.zeros(len(unique_voxels), dtype=np.int32)
+        points = self.pointcloud.points
+        representative_indices = np.zeros(len(self.voxel_coords), dtype=np.int32)
 
-        for i, voxel_coord in enumerate(unique_voxels):
-            voxel_tuple = tuple(voxel_coord)
-            point_idx = voxel_indices[voxel_tuple]
-
-            if method == "first":
+        if aggregation_method == "first":
+            # Vectorized: get first index from each voxel
+            for i, voxel_coord in enumerate(self.voxel_coords):
+                voxel_tuple = tuple(voxel_coord)
+                point_idx = self.voxel_indices[voxel_tuple]
                 representative_indices[i] = point_idx[0]
-            elif method == "nearest_to_center":
-                # Calculate voxel center
-                voxel_center = origin + (voxel_coord + 0.5) * voxel_size
-                # Find point nearest to voxel center
-                distances = np.linalg.norm(points[point_idx] - voxel_center, axis=1)
-                nearest_idx = point_idx[np.argmin(distances)]
+        elif aggregation_method == "nearest_to_center":
+            # Vectorized: compute all voxel centers at once
+            voxel_centers = self.origin + (self.voxel_coords + 0.5) * self.voxel_size
+
+            # For each voxel, find nearest point using squared distance
+            for i, voxel_center in enumerate(voxel_centers):
+                voxel_tuple = tuple(self.voxel_coords[i])
+                point_idx = self.voxel_indices[voxel_tuple]
+                # Use squared distance (avoid sqrt)
+                squared_distances = np.sum(
+                    (points[point_idx] - voxel_center) ** 2, axis=1
+                )
+                nearest_idx = point_idx[np.argmin(squared_distances)]
                 representative_indices[i] = nearest_idx
-            else:
-                raise ValueError(f"Unknown aggregation method: {method}")
+        else:
+            raise ValueError(f"Unknown aggregation method: {aggregation_method}")
 
         return representative_indices
 
@@ -233,15 +203,17 @@ class VoxelMap:
         """
         return self.voxel_indices.get(voxel_coord, np.array([], dtype=np.int32))
 
-    def downsample(
+    def export_pointcloud(
         self,
-        pointcloud: "PointCloud",  # type: ignore # noqa: F821
+        aggregation_method: str = "nearest_to_center",
         custom_aggregation: dict[str, Callable] | None = None,
     ) -> "PointCloud":  # type: ignore # noqa: F821
-        """Create a downsampled point cloud using the voxel map.
+        """Export a downsampled point cloud using the voxel map.
 
         Args:
-            pointcloud: The original point cloud (must match the one used to create the map).
+            aggregation_method: Method to select representative point.
+                - "nearest_to_center": Select point nearest to voxel center (default)
+                - "first": Select first point in each voxel
             custom_aggregation: Optional dict mapping attribute names to aggregation functions.
                 Each function should take an array of attribute values and return a single value.
 
@@ -250,18 +222,17 @@ class VoxelMap:
         """
         from framecloud.np.core import PointCloud
 
-        if pointcloud.num_points != self.point_count:
-            logger.warning(
-                "Point cloud size mismatch. This may indicate the point cloud "
-                "has been modified since the voxel map was created."
-            )
+        # Compute representative indices at export time
+        representative_indices = self._compute_representative_indices(
+            aggregation_method
+        )
 
         # Get representative points
-        downsampled_points = pointcloud.points[self.representative_indices]
+        downsampled_points = self.pointcloud.points[representative_indices]
 
         # Aggregate attributes
         downsampled_attributes = {}
-        for attr_name, attr_values in pointcloud.attributes.items():
+        for attr_name, attr_values in self.pointcloud.attributes.items():
             if custom_aggregation and attr_name in custom_aggregation:
                 # Use custom aggregation function
                 aggregated_values = []
@@ -274,37 +245,54 @@ class VoxelMap:
                 downsampled_attributes[attr_name] = np.array(aggregated_values)
             else:
                 # Use representative point's attribute
-                downsampled_attributes[attr_name] = attr_values[
-                    self.representative_indices
-                ]
+                downsampled_attributes[attr_name] = attr_values[representative_indices]
 
         logger.info(
-            f"Downsampled point cloud from {self.point_count} to "
+            f"Exported point cloud from {self.pointcloud.num_points} to "
             f"{self.num_voxels} points"
         )
 
         return PointCloud(points=downsampled_points, attributes=downsampled_attributes)
 
-    def recalculate(
-        self,
-        pointcloud: "PointCloud",  # type: ignore # noqa: F821
-        aggregation_method: str = "nearest_to_center",
-    ) -> "VoxelMap":
-        """Recalculate the voxel map from a point cloud using saved parameters.
+    def refresh(self) -> None:
+        """Refresh the voxel map based on the current state of the point cloud.
 
-        Args:
-            pointcloud: The point cloud to voxelize.
-            aggregation_method: Method to select representative point.
-
-        Returns:
-            A new VoxelMap instance.
+        This recalculates voxel assignments if the point cloud has been modified.
         """
-        return VoxelMap.from_pointcloud(
-            pointcloud=pointcloud,
-            voxel_size=self.voxel_size,
-            aggregation_method=aggregation_method,
-            keep_copy=self.keep_copy,
+        points = self.pointcloud.points
+        num_points = points.shape[0]
+
+        if num_points == 0:
+            logger.warning("Empty point cloud.")
+            self.voxel_coords = np.empty((0, 3), dtype=np.int32)
+            self.voxel_indices = {}
+            self.origin = np.zeros(3)
+            return
+
+        # Recalculate origin
+        self.origin = points.min(axis=0)
+
+        # Convert points to voxel coordinates
+        voxel_coords_all = np.floor((points - self.origin) / self.voxel_size).astype(
+            np.int32
         )
+
+        # Find unique voxels and their indices
+        unique_voxels, inverse_indices = np.unique(
+            voxel_coords_all, axis=0, return_inverse=True
+        )
+
+        # Rebuild mapping from voxel coordinates to point indices
+        voxel_indices = {}
+        for voxel_idx in range(len(unique_voxels)):
+            point_mask = inverse_indices == voxel_idx
+            voxel_tuple = tuple(unique_voxels[voxel_idx])
+            voxel_indices[voxel_tuple] = np.where(point_mask)[0]
+
+        self.voxel_coords = unique_voxels
+        self.voxel_indices = voxel_indices
+
+        logger.info(f"Refreshed VoxelMap with {len(unique_voxels)} voxels")
 
     def get_statistics(self) -> dict[str, Any]:
         """Get statistics about the voxel map.
@@ -316,10 +304,12 @@ class VoxelMap:
 
         return {
             "num_voxels": self.num_voxels,
-            "num_points": self.point_count,
+            "num_points": self.pointcloud.num_points,
             "voxel_size": self.voxel_size,
             "compression_ratio": (
-                self.point_count / self.num_voxels if self.num_voxels > 0 else 0
+                self.pointcloud.num_points / self.num_voxels
+                if self.num_voxels > 0
+                else 0
             ),
             "min_points_per_voxel": min(points_per_voxel) if points_per_voxel else 0,
             "max_points_per_voxel": max(points_per_voxel) if points_per_voxel else 0,

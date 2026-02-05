@@ -24,7 +24,7 @@ class TestVoxelMapInitialization:
 
         assert voxelmap.voxel_size == 1.0
         assert voxelmap.num_voxels == 3  # Points should be grouped into 3 voxels
-        assert voxelmap.point_count == 5
+        assert voxelmap.pointcloud.num_points == 5
 
     def test_voxelmap_with_empty_pointcloud(self):
         """Test creating a VoxelMap from an empty PointCloud."""
@@ -33,7 +33,7 @@ class TestVoxelMapInitialization:
         voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         assert voxelmap.num_voxels == 0
-        assert voxelmap.point_count == 0
+        assert voxelmap.pointcloud.num_points == 0
 
     def test_voxelmap_aggregation_first(self):
         """Test VoxelMap with 'first' aggregation method."""
@@ -46,7 +46,7 @@ class TestVoxelMapInitialization:
         )
         pc = PointCloud(data=data)
         voxelmap = VoxelMap.from_pointcloud(
-            pc, voxel_size=1.0, aggregation_method="first"
+            pc, voxel_size=1.0
         )
 
         assert voxelmap.num_voxels == 2
@@ -65,12 +65,14 @@ class TestVoxelMapInitialization:
         )
         pc = PointCloud(data=data)
         voxelmap = VoxelMap.from_pointcloud(
-            pc, voxel_size=1.0, aggregation_method="nearest_to_center"
+            pc, voxel_size=1.0
         )
 
         assert voxelmap.num_voxels == 1
+        # Export with nearest_to_center to check which point is selected
+        downsampled = voxelmap.export_pointcloud(aggregation_method="nearest_to_center")
         # The point at index 1 (0.5, 0.5, 0.5) should be the representative
-        assert voxelmap.representative_indices[0] == 1
+        assert downsampled.data["X"].iloc[0] == 0.5
 
 
 class TestVoxelMapProperties:
@@ -151,7 +153,7 @@ class TestVoxelMapDownsampling:
         pc = PointCloud(data=data)
 
         voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
-        downsampled = voxelmap.downsample(pc)
+        downsampled = voxelmap.export_pointcloud()
 
         assert downsampled.num_points == voxelmap.num_voxels
         assert "intensity" in downsampled.attribute_names
@@ -172,7 +174,7 @@ class TestVoxelMapDownsampling:
 
         # Use mean aggregation for intensity
         custom_agg = {"intensity": lambda x: x.mean()}
-        downsampled = voxelmap.downsample(pc, custom_aggregation=custom_agg)
+        downsampled = voxelmap.export_pointcloud(custom_aggregation=custom_agg)
 
         assert downsampled.num_points == 1
         # Mean of [100, 200, 300] = 200
@@ -195,7 +197,7 @@ class TestVoxelMapDownsampling:
         pc = PointCloud(data=data)
 
         voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
-        downsampled = voxelmap.downsample(pc)
+        downsampled = voxelmap.export_pointcloud()
 
         assert set(downsampled.attribute_names) == set(pc.attribute_names)
 
@@ -203,24 +205,24 @@ class TestVoxelMapDownsampling:
 class TestVoxelMapRecalculation:
     """Test VoxelMap recalculation functionality."""
 
-    def test_recalculate_from_modified_pointcloud(self):
-        """Test recalculating voxel map from a modified point cloud."""
+    def test_refresh_from_modified_pointcloud(self):
+        """Test refreshing voxel map from a modified point cloud."""
         data = pd.DataFrame(
             {"X": [0.0, 1.0, 2.0], "Y": [0.0, 1.0, 2.0], "Z": [0.0, 1.0, 2.0]}
         )
         pc = PointCloud(data=data)
 
-        voxelmap1 = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
+        voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
+        origin1 = voxelmap.origin.copy()
 
         # Modify the point cloud
         pc.data[["X", "Y", "Z"]] = pc.data[["X", "Y", "Z"]] + 0.5
 
-        # Recalculate
-        voxelmap2 = voxelmap1.recalculate(pc)
+        # Refresh voxel map
+        voxelmap.refresh()
 
-        assert voxelmap2.voxel_size == voxelmap1.voxel_size
         # Due to shift, the origin should be different
-        assert not np.array_equal(voxelmap1.origin, voxelmap2.origin)
+        assert not np.array_equal(origin1, voxelmap.origin)
 
 
 class TestVoxelMapStatistics:
@@ -260,12 +262,13 @@ class TestVoxelMapCopyBehavior:
 
         # Without copy
         voxelmap1 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, keep_copy=False)
-        assert voxelmap1.pointcloud_copy is None
+        assert voxelmap1.pointcloud is pc  # Should be same reference
 
         # With copy
         voxelmap2 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, keep_copy=True)
-        assert voxelmap2.pointcloud_copy is not None
-        assert isinstance(voxelmap2.pointcloud_copy, pd.DataFrame)
+        assert voxelmap2.pointcloud is not pc  # Should be different reference
+        # But data should be equal
+        pd.testing.assert_frame_equal(voxelmap2.pointcloud.data, pc.data)
 
 
 class TestVoxelMapEdgeCases:
@@ -278,7 +281,7 @@ class TestVoxelMapEdgeCases:
         voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         assert voxelmap.num_voxels == 1
-        assert voxelmap.point_count == 1
+        assert voxelmap.pointcloud.num_points == 1
 
     def test_large_voxel_size(self):
         """Test with a very large voxel size (all points in one voxel)."""
@@ -333,6 +336,6 @@ class TestVoxelMapEdgeCases:
         voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         assert voxelmap.num_voxels == 2
-        downsampled = voxelmap.downsample(pc)
+        downsampled = voxelmap.export_pointcloud()
         assert "intensity" in downsampled.attribute_names
         assert "classification" in downsampled.attribute_names

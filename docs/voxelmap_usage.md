@@ -25,8 +25,8 @@ print(f"Original points: {pc.num_points}")
 print(f"Voxels created: {voxelmap.num_voxels}")
 print(f"Compression ratio: {voxelmap.get_statistics()['compression_ratio']:.2f}x")
 
-# Downsample the point cloud
-downsampled_pc = voxelmap.downsample(pc)
+# Export downsampled point cloud
+downsampled_pc = voxelmap.export_pointcloud()
 print(f"Downsampled points: {downsampled_pc.num_points}")
 ```
 
@@ -47,23 +47,20 @@ pc = PointCloud(data=data)
 
 # Create voxel map
 voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
-downsampled_pc = voxelmap.downsample(pc)
+downsampled_pc = voxelmap.export_pointcloud()
 ```
 
 ## Aggregation Methods
 
-Two aggregation methods are supported:
+Aggregation methods are specified when exporting, not during construction:
 
 ### 1. Nearest to Center (default)
 
 Selects the point nearest to the voxel center as the representative point.
 
 ```python
-voxelmap = VoxelMap.from_pointcloud(
-    pc, 
-    voxel_size=1.0, 
-    aggregation_method="nearest_to_center"
-)
+voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
+downsampled = voxelmap.export_pointcloud(aggregation_method="nearest_to_center")
 ```
 
 ### 2. First
@@ -71,11 +68,8 @@ voxelmap = VoxelMap.from_pointcloud(
 Selects the first point encountered in each voxel.
 
 ```python
-voxelmap = VoxelMap.from_pointcloud(
-    pc, 
-    voxel_size=1.0, 
-    aggregation_method="first"
-)
+voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
+downsampled = voxelmap.export_pointcloud(aggregation_method="first")
 ```
 
 ## Custom Attribute Aggregation
@@ -94,11 +88,11 @@ pc = PointCloud(points=points, attributes={'intensity': intensity})
 # Create voxel map
 voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
-# Downsample with custom aggregation (mean intensity)
+# Export with custom aggregation (mean intensity)
 custom_agg = {
     'intensity': lambda x: np.mean(x)  # Average intensity in each voxel
 }
-downsampled = voxelmap.downsample(pc, custom_aggregation=custom_agg)
+downsampled = voxelmap.export_pointcloud(custom_aggregation=custom_agg)
 
 print(f"Original intensities: {pc.attributes['intensity']}")
 print(f"Downsampled intensity: {downsampled.attributes['intensity']}")
@@ -119,12 +113,12 @@ data = pd.DataFrame({
 })
 pc = PointCloud(data=data)
 
-# Create voxel map and downsample with custom aggregation
+# Create voxel map and export with custom aggregation
 voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
 custom_agg = {
     'intensity': lambda x: x.mean()  # Pandas Series mean
 }
-downsampled = voxelmap.downsample(pc, custom_aggregation=custom_agg)
+downsampled = voxelmap.export_pointcloud(custom_aggregation=custom_agg)
 ```
 
 ## Accessing Voxel Information
@@ -156,43 +150,46 @@ print(f"Max points per voxel: {stats['max_points_per_voxel']}")
 print(f"Mean points per voxel: {stats['mean_points_per_voxel']:.2f}")
 ```
 
-## Recalculation
+## Refreshing After Modifications
 
-If the point cloud is modified, you can recalculate the voxel map:
+If the point cloud is modified, you can refresh the voxel map:
 
 ```python
 # Create initial voxel map
-voxelmap1 = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
+voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
-# Modify point cloud
+# Modify the point cloud
 pc.points = pc.points + 0.5
 
-# Recalculate voxel map with same parameters
-voxelmap2 = voxelmap1.recalculate(pc)
+# Refresh voxel map to update voxel assignments
+voxelmap.refresh()
 ```
 
-## Optional Deep Copy
+## Point Cloud Reference Behavior
 
-By default, VoxelMap doesn't keep a deep copy of the point cloud (for memory efficiency). You can optionally keep a copy:
+By default, VoxelMap keeps a **mutable reference** to the point cloud (for memory efficiency). You can optionally keep a deep copy:
 
 ```python
-voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0, keep_copy=True)
+# Mutable reference (default) - changes to pc will affect voxelmap
+voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0, keep_copy=False)
 
-# Check if copy is kept
-print(f"Has copy: {voxelmap.pointcloud_copy is not None}")
+# Deep copy - voxelmap has its own copy, independent of pc
+voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=1.0, keep_copy=True)
 ```
 
 ## Important Notes
 
-1. **Memory Efficiency**: VoxelMap tracks point indices rather than copying point data, making it memory-efficient for large point clouds.
+1. **Memory Efficiency**: VoxelMap tracks point indices rather than copying point data by default, making it memory-efficient for large point clouds.
 
-2. **Mutable Point Clouds**: Since VoxelMap stores references (indices) rather than copies, modifying the original point cloud after creating a VoxelMap may cause mismatches. Use `recalculate()` if you modify the point cloud.
+2. **Mutable Point Clouds**: Since VoxelMap stores a reference (or copy) of the point cloud, it holds the actual data. If you modify the original point cloud after creating a VoxelMap with `keep_copy=False`, use `refresh()` to update voxel assignments.
 
 3. **Voxel Size Selection**: Choose voxel size based on your application:
    - Smaller voxels: Less downsampling, more detail preserved
    - Larger voxels: More downsampling, less memory usage
 
 4. **Vectorization**: Both implementations use vectorized operations to avoid loops and maximize performance.
+
+5. **Aggregation at Export**: Aggregation methods are applied during export, not construction, allowing you to export the same voxel map with different aggregation strategies.
 
 ## Performance Comparison
 
