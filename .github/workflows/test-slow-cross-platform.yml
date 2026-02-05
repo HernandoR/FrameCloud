@@ -51,5 +51,5 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
-      - name: Run slow tests
-        run: just test-slow
+      - name: Run benchmark tests
+        run: just benchmark

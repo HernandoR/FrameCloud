@@ -2,44 +2,36 @@
 
 ## Overview
 
-The project now uses `pytest-benchmark` for automated performance benchmarking of point cloud operations. Benchmark results are automatically saved with reports generated in multiple formats.
+The project uses `pytest-benchmark` for automated performance benchmarking of point cloud operations. Benchmark results are automatically saved with reports generated in multiple formats.
 
 ## Running Benchmarks
 
 ### Basic Usage
 
-Run all benchmarks (excluding slow tests):
+Run all benchmarks (including large-scale tests with 10M+ points):
 ```bash
 just benchmark
-# or
-uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only
-```
-
-### Run All Benchmarks (Including Large-Scale Tests)
-
-Run all benchmarks including slow/large-scale tests (10M+ points):
-```bash
-just benchmark-all
 # or
 uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
 ```
 
-### Compare with Previous Results
+### Advanced Options
 
-Compare current benchmark results with previously saved results:
+For advanced users who want to use pytest-benchmark's built-in features:
+
+**Compare with previous results:**
 ```bash
-just benchmark-compare
-# or
-uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-compare
+uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-compare
 ```
 
-### Save Baseline for Future Comparisons
-
-Save current benchmark results as a baseline:
+**Save baseline for future comparisons:**
 ```bash
-just benchmark-save
-# or
-uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-save=baseline
+uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-save=baseline
+```
+
+**Compare against a saved baseline:**
+```bash
+uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-compare=baseline
 ```
 
 ## Benchmark Reports

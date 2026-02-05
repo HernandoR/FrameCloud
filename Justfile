@@ -15,21 +15,9 @@ test-slow:
 _create_report_structure:
     @mkdir -p reports/benchmarks
 
-# Run benchmark tests (excludes slow tests by default)
+# Run benchmark tests
 benchmark: _create_report_structure
-    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only
-
-# Run all benchmarks including slow/large-scale tests
-benchmark-all: _create_report_structure
     uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
-
-# Run benchmarks and compare with previous results
-benchmark-compare: _create_report_structure
-    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-compare
-
-# Run benchmarks and save baseline for future comparisons
-benchmark-save: _create_report_structure
-    uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-save=baseline
 
 # View benchmark histogram in reports/benchmarks/histogram/
 benchmark-view:
