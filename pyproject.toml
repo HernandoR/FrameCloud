@@ -25,6 +25,6 @@ build-backend = "hatchling.build"
 dev = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "pytest-benchmark>=5.2.3",
+    "pytest-benchmark[histogram]>=5.2.3",
     "viztracer>=1.1.1",
 ]
