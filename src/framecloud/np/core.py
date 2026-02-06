@@ -247,7 +247,7 @@ class PointCloud(BaseModel):
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        # logger.info(f"Loading PointCloud from LAS/LAZ file: {file_path}")
+        logger.debug(f"Loading PointCloud from LAS/LAZ file: {file_path}")
         las = laspy.read(file_path)
         points = np.vstack((las.x, las.y, las.z)).T
 
@@ -257,7 +257,7 @@ class PointCloud(BaseModel):
                 attributes[dimension.name] = np.array(las[dimension.name])
 
         pc = cls(points=points, attributes=attributes)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_las(self, file_path: Path | str):
@@ -272,7 +272,7 @@ class PointCloud(BaseModel):
             for supported attributes and their names.
         """
         file_path = str(file_path)
-        logger.info(f"Saving PointCloud to LAS file: {file_path}")
+        logger.debug(f"Saving PointCloud to LAS file: {file_path}")
         header = laspy.LasHeader(point_format=7, version="1.4")
         las = laspy.LasData(header)
 
@@ -284,7 +284,7 @@ class PointCloud(BaseModel):
             las[attr_name] = values
 
         las.write(file_path)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")
 
     # ========================================================================
     # Parquet File I/O Operations
@@ -306,7 +306,7 @@ class PointCloud(BaseModel):
         """
         if position_cols is None:
             position_cols = ["X", "Y", "Z"]
-        # logger.info(f"Loading PointCloud from Parquet file: {file_path}")
+        logger.debug(f"Loading PointCloud from Parquet file: {file_path}")
         df = pl.read_parquet(file_path)
         points = df.select(position_cols).to_numpy()
 
@@ -316,7 +316,7 @@ class PointCloud(BaseModel):
                 attributes[col] = df[col].to_numpy()
 
         pc = cls(points=points, attributes=attributes)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_parquet(self, file_path: Path | str, position_cols: list[str] | None = None):
@@ -328,7 +328,7 @@ class PointCloud(BaseModel):
         """
         if position_cols is None:
             position_cols = ["X", "Y", "Z"]
-        # logger.info(f"Saving PointCloud to Parquet file: {file_path}")
+        logger.debug(f"Saving PointCloud to Parquet file: {file_path}")
         data = {}
         data[position_cols[0]] = self.points[:, 0]
         data[position_cols[1]] = self.points[:, 1]
@@ -339,7 +339,7 @@ class PointCloud(BaseModel):
 
         df = pl.DataFrame(data)
         df.write_parquet(file_path)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")
 
     # ========================================================================
     # Binary Buffer/File I/O Operations
@@ -363,7 +363,7 @@ class PointCloud(BaseModel):
         attribute_names = default_attribute_names(attribute_names)
         point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
 
-        logger.info("Loading PointCloud from binary buffer.")
+        logger.debug("Loading PointCloud from binary buffer.")
         array = np.frombuffer(bytes_buffer, dtype=dtype)
         num_attributes = len(attribute_names)
         validate_buffer_size(array.size, num_attributes)
@@ -373,7 +373,7 @@ class PointCloud(BaseModel):
         attributes = extract_attributes_dict(array, attribute_names)
 
         pc = cls(points=points, attributes=attributes)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_binary_buffer(
@@ -390,7 +390,7 @@ class PointCloud(BaseModel):
         """
         attribute_names = default_attribute_names(attribute_names)
 
-        logger.info("Saving PointCloud to binary buffer.")
+        logger.debug("Saving PointCloud to binary buffer.")
         arrays = []
         for name in attribute_names:
             if name == "X":
@@ -403,7 +403,7 @@ class PointCloud(BaseModel):
                 arrays.append(self.attributes[name])
         combined_array = np.vstack(arrays).T.astype(dtype)
         bytes_buffer = combined_array.tobytes()
-        logger.info("PointCloud saved to binary buffer successfully.")
+        logger.debug("PointCloud saved to binary buffer successfully.")
         return bytes_buffer
 
     @classmethod
@@ -438,7 +438,7 @@ class PointCloud(BaseModel):
         """
         bytes_buffer = self.to_binary_buffer(attribute_names, dtype)
         Path(file_path).write_bytes(bytes_buffer)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")
 
     # ========================================================================
     # NumPy File Format I/O Operations (.npy and .npz)
@@ -463,12 +463,12 @@ class PointCloud(BaseModel):
         attribute_names = default_attribute_names(attribute_names)
         point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
 
-        # logger.info(f"Loading PointCloud from NumPy file: {file_path}")
+        logger.debug(f"Loading PointCloud from NumPy file: {file_path}")
         points = extract_xyz_arrays(array, point_attrs_pos)
         attributes = extract_attributes_dict(array, attribute_names)
 
         pc = cls(points=points, attributes=attributes)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_numpy_file(
@@ -485,7 +485,7 @@ class PointCloud(BaseModel):
         """
         attribute_names = default_attribute_names(attribute_names)
 
-        logger.info(f"Saving PointCloud to NumPy file: {file_path}")
+        logger.debug(f"Saving PointCloud to NumPy file: {file_path}")
         arrays = []
         for name in attribute_names:
             if name == "X":
@@ -498,7 +498,7 @@ class PointCloud(BaseModel):
                 arrays.append(self.attributes[name])
         combined_array = np.vstack(arrays).T.astype(dtype)
         np.save(file_path, combined_array)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")
 
     @classmethod
     def from_npz_file(
@@ -519,7 +519,7 @@ class PointCloud(BaseModel):
         attribute_names = default_attribute_names(attribute_names)
         point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
 
-        # logger.info(f"Loading PointCloud from NumPy .npz file: {file_path}")
+        logger.debug(f"Loading PointCloud from NumPy .npz file: {file_path}")
         for name in attribute_names:
             if name not in npz_data:
                 logger.error(f"Attribute '{name}' not found in .npz file.")
@@ -530,7 +530,7 @@ class PointCloud(BaseModel):
         attributes = extract_attributes_dict(array, attribute_names)
 
         pc = cls(points=points, attributes=attributes)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_npz_file(
@@ -547,7 +547,7 @@ class PointCloud(BaseModel):
         """
         attribute_names = default_attribute_names(attribute_names)
 
-        logger.info(f"Saving PointCloud to NumPy .npz file: {file_path}")
+        logger.debug(f"Saving PointCloud to NumPy .npz file: {file_path}")
         arrays = {}
         for name in attribute_names:
             if name == "X":
@@ -559,4 +559,4 @@ class PointCloud(BaseModel):
             else:
                 arrays[name] = self.attributes[name].astype(dtype)
         np.savez(file_path, **arrays)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")

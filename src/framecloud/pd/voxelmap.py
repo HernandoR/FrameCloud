@@ -83,7 +83,7 @@ class VoxelMap:
         Returns:
             VoxelMap: The created voxel map.
         """
-        logger.info(f"Creating VoxelMap with voxel_size={voxel_size}")
+        logger.debug(f"Creating VoxelMap with voxel_size={voxel_size}")
 
         data = pointcloud.data.copy()
         num_points = len(data)
@@ -120,7 +120,7 @@ class VoxelMap:
         data["voxel_z"] = ((data["Z"] - origin[2]) / voxel_size).astype(np.int32)
 
         # Group by voxel coordinates and collect point indices
-        logger.info(f"Grouping {num_points} points by voxel coordinates")
+        logger.debug(f"Grouping {num_points} points by voxel coordinates")
         grouped = data.groupby(["voxel_x", "voxel_y", "voxel_z"])
 
         # Use list aggregation and then convert to numpy arrays
@@ -129,7 +129,7 @@ class VoxelMap:
         voxel_data["point_indices"] = voxel_data["point_indices"].apply(np.array)
 
         if show_progress:
-            logger.info(f"Created {len(voxel_data)} voxels")
+            logger.debug(f"Created {len(voxel_data)} voxels")
 
         # Handle point cloud reference
         if keep_copy:
@@ -141,7 +141,7 @@ class VoxelMap:
             pc_ref = pointcloud
             is_copy = False
 
-        logger.info(
+        logger.debug(
             f"Created VoxelMap with {len(voxel_data)} voxels from {num_points} points"
         )
 
@@ -313,7 +313,7 @@ class VoxelMap:
 
         representative_data.reset_index(drop=True, inplace=True)
 
-        logger.info(
+        logger.debug(
             f"Exported point cloud from {len(data)} to {self.num_voxels} points"
         )
 
@@ -366,7 +366,7 @@ class VoxelMap:
 
         self.voxel_data = voxel_data
 
-        logger.info(f"Refreshed VoxelMap with {len(voxel_data)} voxels")
+        logger.debug(f"Refreshed VoxelMap with {len(voxel_data)} voxels")
 
     def get_statistics(self) -> dict[str, Any]:
         """Get statistics about the voxel map.

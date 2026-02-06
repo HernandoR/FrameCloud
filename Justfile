@@ -4,6 +4,7 @@
 default:
     @just --list
 
+export LOGURU_LEVEL="INFO"
 # Run all tests
 test: _create_report_structure
     uv run pytest -n auto
@@ -16,7 +17,7 @@ _create_report_structure:
     @mkdir -p reports/benchmarks
 
 # Run benchmark tests
-benchmark $LOGURU_LEVEL="INFO": _create_report_structure 
+benchmark: _create_report_structure 
     uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
 
 # View benchmark histogram in reports/benchmarks/histogram/

@@ -89,7 +89,7 @@ class VoxelMap:
         Returns:
             VoxelMap: The created voxel map.
         """
-        logger.info(f"Creating VoxelMap with voxel_size={voxel_size}")
+        logger.debug(f"Creating VoxelMap with voxel_size={voxel_size}")
 
         points = pointcloud.points
         num_points = points.shape[0]
@@ -119,7 +119,7 @@ class VoxelMap:
 
         # Build mapping from voxel coordinates to point indices (with optional progress bar)
         voxel_indices = {}
-        logger.info(f"Grouping {num_points} points into {len(unique_voxels)} voxels")
+        logger.debug(f"Grouping {num_points} points into {len(unique_voxels)} voxels")
         iterator = range(len(unique_voxels))
         if show_progress:
             iterator = tqdm(iterator, desc="Building voxel map")
@@ -140,7 +140,7 @@ class VoxelMap:
             pc_ref = pointcloud
             is_copy = False
 
-        logger.info(
+        logger.debug(
             f"Created VoxelMap with {len(unique_voxels)} voxels "
             f"from {num_points} points"
         )
@@ -248,7 +248,7 @@ class VoxelMap:
                 # Use representative point's attribute (vectorized)
                 downsampled_attributes[attr_name] = attr_values[representative_indices]
 
-        logger.info(
+        logger.debug(
             f"Exported point cloud from {self.pointcloud.num_points} to "
             f"{self.num_voxels} points"
         )
@@ -293,7 +293,7 @@ class VoxelMap:
         self.voxel_coords = unique_voxels
         self.voxel_indices = voxel_indices
 
-        logger.info(f"Refreshed VoxelMap with {len(unique_voxels)} voxels")
+        logger.debug(f"Refreshed VoxelMap with {len(unique_voxels)} voxels")
 
     def get_statistics(self) -> dict[str, Any]:
         """Get statistics about the voxel map.

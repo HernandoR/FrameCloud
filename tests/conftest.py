@@ -7,6 +7,28 @@ from framecloud.np.core import PointCloud as NpPointCloud
 from framecloud.pd.core import PointCloud as PdPointCloud
 
 
+def human_readable_number(num_str):
+    try:
+        num = float(num_str)
+    except (ValueError, TypeError):
+        return num_str
+
+    units = [(1e9, "B"), (1e6, "M"), (1e3, "K")]
+    for threshold, unit in units:
+        if num >= threshold:
+            value = num / threshold
+            return f"{value:.1f}".rstrip(".0") + unit
+    return str(int(num)) if num.is_integer() else str(num)
+
+
+def pytest_make_parametrize_id(config, val, argname):
+    if isinstance(val, (int, float)):
+        return human_readable_number(val)
+    elif isinstance(val, str) and val.replace(".", "").replace("-", "").isdigit():
+        return human_readable_number(val)
+    return str(val)
+
+
 @pytest.fixture
 def small_point_cloud_np():
     """Create a small point cloud (10 points) using numpy."""

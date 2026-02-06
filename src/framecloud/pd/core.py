@@ -203,7 +203,7 @@ class PointCloud(BaseModel):
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        # logger.info(f"Loading PointCloud from LAS/LAZ file: {file_path}")
+        logger.debug(f"Loading PointCloud from LAS/LAZ file: {file_path}")
         las = laspy.read(file_path)
 
         data = {
@@ -218,7 +218,7 @@ class PointCloud(BaseModel):
 
         df = pd.DataFrame(data)
         pc = cls(data=df)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_las(self, file_path: Path | str):
@@ -228,7 +228,7 @@ class PointCloud(BaseModel):
             file_path (Path): Path to the output LAS file.
         """
         file_path = str(file_path)
-        logger.info(f"Saving PointCloud to LAS file: {file_path}")
+        logger.debug(f"Saving PointCloud to LAS file: {file_path}")
         header = laspy.LasHeader(point_format=7, version="1.4")
         las = laspy.LasData(header)
 
@@ -240,7 +240,7 @@ class PointCloud(BaseModel):
             las[attr_name] = self.data[attr_name].to_numpy()
 
         las.write(file_path)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")
 
     # ========================================================================
     # Parquet File I/O Operations
@@ -263,7 +263,7 @@ class PointCloud(BaseModel):
         """
         if position_cols is None:
             position_cols = ["X", "Y", "Z"]
-        # logger.info(f"Loading PointCloud from Parquet file: {file_path}")
+        logger.debug(f"Loading PointCloud from Parquet file: {file_path}")
         df_pl = pl.read_parquet(file_path)
         df = df_pl.to_pandas()
 
@@ -278,7 +278,7 @@ class PointCloud(BaseModel):
             )
 
         pc = cls(data=df)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_parquet(self, file_path: Path | str, position_cols: list[str] | None = None):
@@ -290,7 +290,7 @@ class PointCloud(BaseModel):
         """
         if position_cols is None:
             position_cols = ["X", "Y", "Z"]
-        # # logger.info(f"Saving PointCloud to Parquet file: {file_path}")
+        logger.debug(f"Saving PointCloud to Parquet file: {file_path}")
 
         df = self.data.copy()
         # Rename X, Y, Z to custom position columns if needed
@@ -305,7 +305,7 @@ class PointCloud(BaseModel):
 
         df_pl = pl.from_pandas(df)
         df_pl.write_parquet(file_path)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")
 
     # ========================================================================
     # Binary Buffer/File I/O Operations
@@ -333,7 +333,7 @@ class PointCloud(BaseModel):
             logger.error(f"Attribute names must include 'X', 'Y', and 'Z'.")
             raise ValueError(f"Attribute names must include 'X', 'Y', and 'Z'.")
 
-        logger.info("Loading PointCloud from binary buffer.")
+        logger.debug("Loading PointCloud from binary buffer.")
         array = np.frombuffer(bytes_buffer, dtype=dtype)
         num_attributes = len(attribute_names)
         validate_buffer_size(array.size, num_attributes)
@@ -343,7 +343,7 @@ class PointCloud(BaseModel):
         data = {name: array[:, i] for i, name in enumerate(attribute_names)}
         df = pd.DataFrame(data)
         pc = cls(data=df)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_binary_buffer(
@@ -360,7 +360,7 @@ class PointCloud(BaseModel):
         """
         attribute_names = default_attribute_names(attribute_names)
 
-        logger.info("Saving PointCloud to binary buffer.")
+        logger.debug("Saving PointCloud to binary buffer.")
         arrays = []
         for name in attribute_names:
             if name in self.data.columns:
@@ -371,7 +371,7 @@ class PointCloud(BaseModel):
 
         combined_array = np.vstack(arrays).T.astype(dtype)
         bytes_buffer = combined_array.tobytes()
-        logger.info("PointCloud saved to binary buffer successfully.")
+        logger.debug("PointCloud saved to binary buffer successfully.")
         return bytes_buffer
 
     @classmethod
@@ -406,7 +406,7 @@ class PointCloud(BaseModel):
         """
         bytes_buffer = self.to_binary_buffer(attribute_names, dtype)
         Path(file_path).write_bytes(bytes_buffer)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")
 
     # ========================================================================
     # NumPy File Format I/O Operations
@@ -434,11 +434,11 @@ class PointCloud(BaseModel):
             logger.error(f"Attribute names must include 'X', 'Y', and 'Z'.")
             raise ValueError(f"Attribute names must include 'X', 'Y', and 'Z'.")
 
-        # logger.info(f"Loading PointCloud from NumPy file: {file_path}")
+        logger.debug(f"Loading PointCloud from NumPy file: {file_path}")
         data = {name: array[:, i] for i, name in enumerate(attribute_names)}
         df = pd.DataFrame(data)
         pc = cls(data=df)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_numpy_file(
@@ -455,7 +455,7 @@ class PointCloud(BaseModel):
         """
         attribute_names = default_attribute_names(attribute_names)
 
-        logger.info(f"Saving PointCloud to NumPy file: {file_path}")
+        logger.debug(f"Saving PointCloud to NumPy file: {file_path}")
         arrays = []
         for name in attribute_names:
             if name in self.data.columns:
@@ -466,7 +466,7 @@ class PointCloud(BaseModel):
 
         combined_array = np.vstack(arrays).T.astype(dtype)
         np.save(file_path, combined_array)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")
 
     @classmethod
     def from_npz_file(
@@ -490,7 +490,7 @@ class PointCloud(BaseModel):
             logger.error(f"Attribute names must include 'X', 'Y', and 'Z'.")
             raise ValueError(f"Attribute names must include 'X', 'Y', and 'Z'.")
 
-        # logger.info(f"Loading PointCloud from NumPy .npz file: {file_path}")
+        logger.debug(f"Loading PointCloud from NumPy .npz file: {file_path}")
         for name in attribute_names:
             if name not in npz_data:
                 logger.error(f"Attribute '{name}' not found in .npz file.")
@@ -499,7 +499,7 @@ class PointCloud(BaseModel):
         data = {name: npz_data[name].astype(dtype) for name in attribute_names}
         df = pd.DataFrame(data)
         pc = cls(data=df)
-        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        logger.debug(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_npz_file(
@@ -516,7 +516,7 @@ class PointCloud(BaseModel):
         """
         attribute_names = default_attribute_names(attribute_names)
 
-        logger.info(f"Saving PointCloud to NumPy .npz file: {file_path}")
+        logger.debug(f"Saving PointCloud to NumPy .npz file: {file_path}")
         arrays = {}
         for name in attribute_names:
             if name in self.data.columns:
@@ -526,4 +526,4 @@ class PointCloud(BaseModel):
                 raise ValueError(f"Attribute '{name}' not found in point cloud.")
 
         np.savez(file_path, **arrays)
-        # logger.info(f"PointCloud saved to {file_path} successfully.")
+        logger.debug(f"PointCloud saved to {file_path} successfully.")

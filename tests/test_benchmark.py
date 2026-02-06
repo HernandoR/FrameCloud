@@ -22,16 +22,27 @@ from framecloud.pd.core import PointCloud as PdPointCloud
 
 
 # Use smaller sizes by default for faster feedback
-@pytest.fixture(params=[1e5, 1e6, 1e7])
+@pytest.fixture(
+    params=[
+        100_000,
+        1000_000,
+        10_000_000,
+    ]
+)
 def small_benchmark_size(request):
     """Parametrized fixture for smaller benchmark point cloud sizes."""
-    return int(request.param)
+    return request.param
 
 
-@pytest.fixture(params=[5e7, 1e8])
+@pytest.fixture(
+    params=[
+        50_000_000,
+        100_000_000,
+    ]
+)
 def large_benchmark_size(request):
     """Parametrized fixture for large benchmark point cloud sizes."""
-    return int(request.param)
+    return request.param
 
 
 @pytest.mark.benchmark(group="creation")
