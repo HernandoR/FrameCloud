@@ -4,7 +4,6 @@
 default:
     @just --list
 
-export LOGURU_LEVEL="INFO"
 # Run all tests
 test: _create_report_structure
     uv run pytest -n auto
