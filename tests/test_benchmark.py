@@ -28,7 +28,7 @@ def small_benchmark_size(request):
     return int(request.param)
 
 
-@pytest.fixture(params=[1e8, 2e8])
+@pytest.fixture(params=[5e7, 1e8])
 def large_benchmark_size(request):
     """Parametrized fixture for large benchmark point cloud sizes."""
     return int(request.param)
