@@ -22,16 +22,16 @@ from framecloud.pd.core import PointCloud as PdPointCloud
 
 
 # Use smaller sizes by default for faster feedback
-@pytest.fixture(params=[100_000, 1_000_000])
+@pytest.fixture(params=[1e5, 1e6, 1e7])
 def small_benchmark_size(request):
     """Parametrized fixture for smaller benchmark point cloud sizes."""
-    return request.param
+    return int(request.param)
 
 
-@pytest.fixture(params=[10_000_000])
+@pytest.fixture(params=[1e8, 2e8])
 def large_benchmark_size(request):
     """Parametrized fixture for large benchmark point cloud sizes."""
-    return request.param
+    return int(request.param)
 
 
 @pytest.mark.benchmark(group="creation")
@@ -274,4 +274,45 @@ class TestBenchmarkLargeScale:
             return PdPointCloud(data=df)
 
         result = benchmark(create_large_pd_pointcloud)
+        assert result.num_points == large_benchmark_size
+
+    # transformation
+    def test_np_transform_large_pointcloud(self, benchmark, large_benchmark_size):
+        """Benchmark transforming very large point cloud with numpy."""
+        np.random.seed(42)
+        points = np.random.randn(large_benchmark_size, 3).astype(np.float32)
+        pc = NpPointCloud(points=points)
+        matrix = np.array(
+            [
+                [2, 0, 0, 10],
+                [0, 2, 0, 20],
+                [0, 0, 2, 30],
+                [0, 0, 0, 1],
+            ]
+        )
+
+        result = benchmark(pc.transform, matrix, inplace=False)
+        assert result.num_points == large_benchmark_size
+
+    def test_pd_transform_large_pointcloud(self, benchmark, large_benchmark_size):
+        """Benchmark transforming very large point cloud with pandas."""
+        np.random.seed(42)
+        df = pd.DataFrame(
+            {
+                "X": np.random.randn(large_benchmark_size).astype(np.float32),
+                "Y": np.random.randn(large_benchmark_size).astype(np.float32),
+                "Z": np.random.randn(large_benchmark_size).astype(np.float32),
+            }
+        )
+        pc = PdPointCloud(data=df)
+        matrix = np.array(
+            [
+                [2, 0, 0, 10],
+                [0, 2, 0, 20],
+                [0, 0, 2, 30],
+                [0, 0, 0, 1],
+            ]
+        )
+
+        result = benchmark(pc.transform, matrix, inplace=False)
         assert result.num_points == large_benchmark_size

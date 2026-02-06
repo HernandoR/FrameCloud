@@ -6,17 +6,17 @@ default:
 
 # Run all tests
 test: _create_report_structure
-    uv run pytest
+    uv run pytest -n auto
 
 test-slow:
-    uv run pytest --runslow
+    uv run pytest -n auto -m "slow"
 
 # Internal: Create report directory structure
 _create_report_structure:
     @mkdir -p reports/benchmarks
 
 # Run benchmark tests
-benchmark: _create_report_structure
+benchmark $LOGURU_LEVEL="INFO": _create_report_structure 
     uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
 
 # View benchmark histogram in reports/benchmarks/histogram/
@@ -25,10 +25,6 @@ benchmark-view:
     @echo "  - JSON: reports/benchmarks/benchmark.json"
     @echo "  - Histogram: reports/benchmarks/histogram/"
     @ls -lh reports/benchmarks/ 2>/dev/null || echo "No benchmark reports found. Run 'just benchmark' first."
-
-# Run tests in parallel (requires pytest-xdist)
-test-parallel:
-    uv run pytest -n auto
 
 # Run linting with ruff
 lint:

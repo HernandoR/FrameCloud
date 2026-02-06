@@ -34,13 +34,21 @@ class PointCloud(BaseModel):
 
     points: np.ndarray = Field(
         ...,
-        description="An Nx3 array representing the 3D coordinates of N points.",
-        example=np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]),
+        # description="An Nx3 array representing the 3D coordinates of N points.",
+        # example=np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]),
+        json_schema_extra={
+            "description": "An Nx3 array representing the 3D coordinates of N points.",
+            "example": np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]).tolist(),
+        },
     )
     attributes: dict = Field(
         default_factory=dict,
-        description="A dictionary containing additional attributes for the points.",
-        example={"colors": np.array([[255, 0, 0], [0, 255, 0]])},
+        # description="A dictionary containing additional attributes for the points.",
+        # example={"colors": np.array([[255, 0, 0], [0, 255, 0]])},
+        json_schema_extra={
+            "description": "A dictionary containing additional attributes for the points.",
+            "example": {"colors": np.array([[255, 0, 0], [0, 255, 0]]).tolist()},
+        },
     )
 
     @field_validator("points")
@@ -110,7 +118,7 @@ class PointCloud(BaseModel):
                 f"Attribute '{name}' length does not match number of points."
             )
         self.attributes[name] = values
-        logger.debug(f"Attribute '{name}' set successfully.")
+        logger.trace(f"Attribute '{name}' set successfully.")
 
     def add_attribute(self, name: str, values: np.ndarray):
         """Adds an attribute to the point cloud.
@@ -132,7 +140,7 @@ class PointCloud(BaseModel):
                 f"Attribute '{name}' length does not match number of points."
             )
         self.attributes[name] = values
-        logger.debug(f"Attribute '{name}' added successfully.")
+        logger.trace(f"Attribute '{name}' added successfully.")
 
     def remove_attribute(self, name: str):
         """Removes an attribute from the point cloud. does nothing if not exists.
@@ -141,7 +149,7 @@ class PointCloud(BaseModel):
         """
         if name in self.attributes:
             del self.attributes[name]
-            logger.debug(f"Attribute '{name}' removed successfully.")
+            logger.trace(f"Attribute '{name}' removed successfully.")
         else:
             logger.warning(f"Attribute '{name}' does not exist. No action taken.")
 
@@ -190,7 +198,7 @@ class PointCloud(BaseModel):
 
         if inplace:
             self.points = transformed_points[:, :3]
-            logger.debug("Point cloud transformed in place.")
+            logger.trace("Point cloud transformed in place.")
         else:
             new_pc = PointCloud(
                 points=transformed_points[:, :3], attributes=self.attributes.copy()
@@ -223,7 +231,7 @@ class PointCloud(BaseModel):
             name: values[sampled_indices] for name, values in self.attributes.items()
         }
 
-        logger.debug(f"Sampled {num_samples} points from the point cloud.")
+        logger.trace(f"Sampled {num_samples} points from the point cloud.")
         return PointCloud(points=sampled_points, attributes=sampled_attributes)
 
     # ========================================================================
@@ -239,7 +247,7 @@ class PointCloud(BaseModel):
         Returns:
             PointCloud: The loaded PointCloud object.
         """
-        logger.info(f"Loading PointCloud from LAS/LAZ file: {file_path}")
+        # logger.info(f"Loading PointCloud from LAS/LAZ file: {file_path}")
         las = laspy.read(file_path)
         points = np.vstack((las.x, las.y, las.z)).T
 
@@ -249,7 +257,7 @@ class PointCloud(BaseModel):
                 attributes[dimension.name] = np.array(las[dimension.name])
 
         pc = cls(points=points, attributes=attributes)
-        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_las(self, file_path: Path | str):
@@ -276,7 +284,7 @@ class PointCloud(BaseModel):
             las[attr_name] = values
 
         las.write(file_path)
-        logger.info(f"PointCloud saved to {file_path} successfully.")
+        # logger.info(f"PointCloud saved to {file_path} successfully.")
 
     # ========================================================================
     # Parquet File I/O Operations
@@ -298,7 +306,7 @@ class PointCloud(BaseModel):
         """
         if position_cols is None:
             position_cols = ["X", "Y", "Z"]
-        logger.info(f"Loading PointCloud from Parquet file: {file_path}")
+        # logger.info(f"Loading PointCloud from Parquet file: {file_path}")
         df = pl.read_parquet(file_path)
         points = df.select(position_cols).to_numpy()
 
@@ -308,7 +316,7 @@ class PointCloud(BaseModel):
                 attributes[col] = df[col].to_numpy()
 
         pc = cls(points=points, attributes=attributes)
-        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_parquet(self, file_path: Path | str, position_cols: list[str] | None = None):
@@ -320,7 +328,7 @@ class PointCloud(BaseModel):
         """
         if position_cols is None:
             position_cols = ["X", "Y", "Z"]
-        logger.info(f"Saving PointCloud to Parquet file: {file_path}")
+        # logger.info(f"Saving PointCloud to Parquet file: {file_path}")
         data = {}
         data[position_cols[0]] = self.points[:, 0]
         data[position_cols[1]] = self.points[:, 1]
@@ -331,7 +339,7 @@ class PointCloud(BaseModel):
 
         df = pl.DataFrame(data)
         df.write_parquet(file_path)
-        logger.info(f"PointCloud saved to {file_path} successfully.")
+        # logger.info(f"PointCloud saved to {file_path} successfully.")
 
     # ========================================================================
     # Binary Buffer/File I/O Operations
@@ -365,7 +373,7 @@ class PointCloud(BaseModel):
         attributes = extract_attributes_dict(array, attribute_names)
 
         pc = cls(points=points, attributes=attributes)
-        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_binary_buffer(
@@ -430,7 +438,7 @@ class PointCloud(BaseModel):
         """
         bytes_buffer = self.to_binary_buffer(attribute_names, dtype)
         Path(file_path).write_bytes(bytes_buffer)
-        logger.info(f"PointCloud saved to {file_path} successfully.")
+        # logger.info(f"PointCloud saved to {file_path} successfully.")
 
     # ========================================================================
     # NumPy File Format I/O Operations (.npy and .npz)
@@ -455,12 +463,12 @@ class PointCloud(BaseModel):
         attribute_names = default_attribute_names(attribute_names)
         point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
 
-        logger.info(f"Loading PointCloud from NumPy file: {file_path}")
+        # logger.info(f"Loading PointCloud from NumPy file: {file_path}")
         points = extract_xyz_arrays(array, point_attrs_pos)
         attributes = extract_attributes_dict(array, attribute_names)
 
         pc = cls(points=points, attributes=attributes)
-        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_numpy_file(
@@ -490,7 +498,7 @@ class PointCloud(BaseModel):
                 arrays.append(self.attributes[name])
         combined_array = np.vstack(arrays).T.astype(dtype)
         np.save(file_path, combined_array)
-        logger.info(f"PointCloud saved to {file_path} successfully.")
+        # logger.info(f"PointCloud saved to {file_path} successfully.")
 
     @classmethod
     def from_npz_file(
@@ -511,7 +519,7 @@ class PointCloud(BaseModel):
         attribute_names = default_attribute_names(attribute_names)
         point_attrs_pos = validate_xyz_in_attribute_names(attribute_names)
 
-        logger.info(f"Loading PointCloud from NumPy .npz file: {file_path}")
+        # logger.info(f"Loading PointCloud from NumPy .npz file: {file_path}")
         for name in attribute_names:
             if name not in npz_data:
                 logger.error(f"Attribute '{name}' not found in .npz file.")
@@ -522,7 +530,7 @@ class PointCloud(BaseModel):
         attributes = extract_attributes_dict(array, attribute_names)
 
         pc = cls(points=points, attributes=attributes)
-        logger.info(f"Loaded PointCloud with {pc.num_points} points.")
+        # logger.info(f"Loaded PointCloud with {pc.num_points} points.")
         return pc
 
     def to_npz_file(
@@ -551,4 +559,4 @@ class PointCloud(BaseModel):
             else:
                 arrays[name] = self.attributes[name].astype(dtype)
         np.savez(file_path, **arrays)
-        logger.info(f"PointCloud saved to {file_path} successfully.")
+        # logger.info(f"PointCloud saved to {file_path} successfully.")
