@@ -34,9 +34,9 @@ test-parallel:
 lint:
     uvx ruff check --fix src tests
 
-# Check formatting without making changes
+# Check formatting with auto fix
 format:
-    uvx ruff format --check src tests
+    uvx ruff format
 
 # Type check with ty
 type-check: install
