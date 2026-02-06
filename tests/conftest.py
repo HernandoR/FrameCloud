@@ -8,17 +8,36 @@ from framecloud.pd.core import PointCloud as PdPointCloud
 
 
 def human_readable_number(num_str):
+    """Convert a number to a human-readable format with unit suffix.
+
+    Args:
+        num_str: A string or number to convert.
+
+    Returns:
+        A human-readable string (e.g., '10M', '1.5K').
+    """
     try:
         num = float(num_str)
     except (ValueError, TypeError):
         return num_str
 
+    if num == 0:
+        return "0"
+
+    abs_num = abs(num)
     units = [(1e9, "B"), (1e6, "M"), (1e3, "K")]
+
     for threshold, unit in units:
-        if num >= threshold:
+        if abs_num >= threshold:
             value = num / threshold
-            return f"{value:.1f}".rstrip(".0") + unit
-    return str(int(num)) if num.is_integer() else str(num)
+            # Format with 1 decimal place, then remove trailing ".0"
+            formatted = f"{value:.1f}"
+            if formatted.endswith(".0"):
+                formatted = formatted[:-2]
+            return formatted + unit
+
+    # For numbers < 1000, return as integer if whole, else as float
+    return str(int(num)) if isinstance(num, int) or num.is_integer() else str(num)
 
 
 def pytest_make_parametrize_id(config, val, argname):
