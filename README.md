@@ -53,14 +53,9 @@ The project uses `pytest-benchmark` for automated performance benchmarking:
   just benchmark
   ```
 
-- Run all benchmarks (including slow large-scale tests):
-  ```bash
-  just benchmark-all
-  ```
-
 - Compare with previous results:
   ```bash
-  just benchmark-compare
+  uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-compare
   ```
 
 Benchmark reports are automatically generated in `reports/benchmarks/` including:

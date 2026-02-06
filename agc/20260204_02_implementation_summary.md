@@ -33,11 +33,10 @@ Added benchmark-specific configuration:
 
 #### Justfile
 Enhanced with new benchmark commands:
-- `just benchmark` - Run fast benchmarks (100K-1M points)
-- `just benchmark-all` - Run all benchmarks including slow tests (10M+ points)
-- `just benchmark-compare` - Compare with previous results
-- `just benchmark-save` - Save baseline for future comparisons
-- `just benchmark-view` - Show report locations and files
+- `just benchmark` - Run all benchmarks (including large-scale tests)
+- `just benchmark-view` - Show benchmark report locations and files
+
+Advanced behaviors like saving baselines (`--benchmark-save`), comparing runs (`--benchmark-compare`), or filtering by markers are handled directly via pytest-benchmark flags when invoking tests.
 
 ### 3. Test Refactoring
 
@@ -125,17 +124,14 @@ test_pd_create_pointcloud[1000000]     66.99    67.75    67.37     0.26    67.37
 ## Usage Examples
 
 ```bash
-# Run fast benchmarks
+# Run all benchmarks (including large-scale tests)
 just benchmark
 
-# Run all benchmarks (including slow)
-just benchmark-all
+# Compare with previous run (use pytest-benchmark flags directly)
+uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-compare
 
-# Compare with previous run
-just benchmark-compare
-
-# Save current as baseline
-just benchmark-save
+# Save current as baseline (use pytest-benchmark flags directly)
+uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-save=baseline
 
 # View report files
 just benchmark-view
