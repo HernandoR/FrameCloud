@@ -5,14 +5,26 @@ default:
     @just --list
 
 # Run all tests
-test:
+test: _create_report_structure
     uv run pytest
 
 test-slow:
     uv run pytest --runslow
 
-benchmark:
-    uv run pytest -m benchmark
+# Internal: Create report directory structure
+_create_report_structure:
+    @mkdir -p reports/benchmarks
+
+# Run benchmark tests
+benchmark: _create_report_structure
+    uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
+
+# View benchmark histogram in reports/benchmarks/histogram/
+benchmark-view:
+    @echo "Benchmark reports are saved in:"
+    @echo "  - JSON: reports/benchmarks/benchmark.json"
+    @echo "  - Histogram: reports/benchmarks/histogram/"
+    @ls -lh reports/benchmarks/ 2>/dev/null || echo "No benchmark reports found. Run 'just benchmark' first."
 
 # Run tests in parallel (requires pytest-xdist)
 test-parallel:
@@ -22,9 +34,9 @@ test-parallel:
 lint:
     uvx ruff check --fix src tests
 
-# Check formatting without making changes
+# Check formatting with auto fix
 format:
-    uvx ruff format --check src tests
+    uvx ruff format
 
 # Type check with ty
 type-check: install

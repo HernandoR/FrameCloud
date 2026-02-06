@@ -40,7 +40,30 @@ A minimal, practical project template for small Python projects and experiments.
 - Run tests using `pytest`:
   ```bash
   uv run pytest
+  # or
+  just test
   ```
+
+### Benchmarking
+
+The project uses `pytest-benchmark` for automated performance benchmarking:
+
+- Run benchmarks:
+  ```bash
+  just benchmark
+  ```
+
+- Compare with previous results:
+  ```bash
+  uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-compare
+  ```
+
+Benchmark reports are automatically generated in `reports/benchmarks/` including:
+- JSON statistics (`benchmark.json`)
+- Historical data (organized by commit hash and timestamp)
+- SVG histograms for visual analysis
+
+For detailed benchmark usage, see [agc/20260204_01_benchmark_usage.md](agc/20260204_01_benchmark_usage.md)
 
 ## Contributing
 
