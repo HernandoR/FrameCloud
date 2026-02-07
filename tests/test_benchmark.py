@@ -348,9 +348,7 @@ class TestBenchmarkVoxelMap:
         points = np.random.randn(small_benchmark_size, 3).astype(np.float32) * 100
         pc = NpPointCloud(points=points)
 
-        result = benchmark(
-            NpVoxelMap.from_pointcloud, pc, voxel_size=1.0, show_progress=False
-        )
+        result = benchmark(NpVoxelMap.from_pointcloud, pc, voxel_size=1.0)
         assert result.num_voxels > 0
 
     def test_pd_voxelmap_creation(self, benchmark, small_benchmark_size):
@@ -365,9 +363,7 @@ class TestBenchmarkVoxelMap:
         )
         pc = PdPointCloud(data=df)
 
-        result = benchmark(
-            PdVoxelMap.from_pointcloud, pc, voxel_size=1.0, show_progress=False
-        )
+        result = benchmark(PdVoxelMap.from_pointcloud, pc, voxel_size=1.0)
         assert result.num_voxels > 0
 
     def test_np_voxelmap_export(self, benchmark, small_benchmark_size):
@@ -376,7 +372,7 @@ class TestBenchmarkVoxelMap:
         points = np.random.randn(small_benchmark_size, 3).astype(np.float32) * 100
         intensities = np.random.rand(small_benchmark_size).astype(np.float32)
         pc = NpPointCloud(points=points, attributes={"intensities": intensities})
-        voxelmap = NpVoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=False)
+        voxelmap = NpVoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         result = benchmark(voxelmap.export_pointcloud)
         assert result.num_points == voxelmap.num_voxels
@@ -393,7 +389,7 @@ class TestBenchmarkVoxelMap:
             }
         )
         pc = PdPointCloud(data=df)
-        voxelmap = PdVoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=False)
+        voxelmap = PdVoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         result = benchmark(voxelmap.export_pointcloud)
         assert result.num_points == voxelmap.num_voxels
@@ -405,7 +401,7 @@ class TestBenchmarkVoxelMap:
         np.random.seed(42)
         points = np.random.randn(small_benchmark_size, 3).astype(np.float32) * 100
         pc = NpPointCloud(points=points)
-        voxelmap = NpVoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=False)
+        voxelmap = NpVoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         result = benchmark(
             voxelmap.export_pointcloud, aggregation_method="nearest_to_center"
@@ -425,7 +421,7 @@ class TestBenchmarkVoxelMap:
             }
         )
         pc = PdPointCloud(data=df)
-        voxelmap = PdVoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=False)
+        voxelmap = PdVoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         result = benchmark(
             voxelmap.export_pointcloud, aggregation_method="nearest_to_center"
@@ -455,9 +451,7 @@ class TestBenchmarkVoxelMapLargeScale:
         points = np.random.randn(large_benchmark_size, 3).astype(np.float32) * 100
         pc = NpPointCloud(points=points)
 
-        result = benchmark(
-            NpVoxelMap.from_pointcloud, pc, voxel_size=1.0, show_progress=False
-        )
+        result = benchmark(NpVoxelMap.from_pointcloud, pc, voxel_size=1.0)
         assert result.num_voxels > 0
 
     def test_pd_voxelmap_large_creation(self, benchmark, large_benchmark_size):
@@ -472,9 +466,7 @@ class TestBenchmarkVoxelMapLargeScale:
         )
         pc = PdPointCloud(data=df)
 
-        result = benchmark(
-            PdVoxelMap.from_pointcloud, pc, voxel_size=1.0, show_progress=False
-        )
+        result = benchmark(PdVoxelMap.from_pointcloud, pc, voxel_size=1.0)
         assert result.num_voxels > 0
 
     def test_np_voxelmap_large_export(self, benchmark, large_benchmark_size):
@@ -482,7 +474,7 @@ class TestBenchmarkVoxelMapLargeScale:
         np.random.seed(42)
         points = np.random.randn(large_benchmark_size, 3).astype(np.float32) * 100
         pc = NpPointCloud(points=points)
-        voxelmap = NpVoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=False)
+        voxelmap = NpVoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         result = benchmark(voxelmap.export_pointcloud)
         assert result.num_points == voxelmap.num_voxels
@@ -498,7 +490,7 @@ class TestBenchmarkVoxelMapLargeScale:
             }
         )
         pc = PdPointCloud(data=df)
-        voxelmap = PdVoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=False)
+        voxelmap = PdVoxelMap.from_pointcloud(pc, voxel_size=1.0)
 
         result = benchmark(voxelmap.export_pointcloud)
         assert result.num_points == voxelmap.num_voxels

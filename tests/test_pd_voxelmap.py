@@ -319,28 +319,6 @@ class TestVoxelMapEdgeCases:
         assert voxelmap.num_voxels == 3
         assert voxelmap.origin[0] == -1.0
 
-    def test_show_progress_parameter(self):
-        """Test show_progress parameter."""
-        data = pd.DataFrame(
-            {
-                "X": np.random.rand(100) * 10,
-                "Y": np.random.rand(100) * 10,
-                "Z": np.random.rand(100) * 10,
-            }
-        )
-        pc = PointCloud(data=data)
-
-        # Test with progress bar disabled
-        voxelmap1 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=False)
-        assert voxelmap1.num_voxels > 0
-
-        # Test with progress bar enabled (default)
-        voxelmap2 = VoxelMap.from_pointcloud(pc, voxel_size=1.0, show_progress=True)
-        assert voxelmap2.num_voxels > 0
-
-        # Both should produce same results
-        assert voxelmap1.num_voxels == voxelmap2.num_voxels
-
     def test_empty_voxelmap_export(self):
         """Test exporting from empty voxel map."""
         data = pd.DataFrame({"X": [], "Y": [], "Z": []})

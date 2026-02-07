@@ -70,7 +70,6 @@ class VoxelMap:
         pointcloud: PointCloud,
         voxel_size: float,
         keep_copy: bool = False,
-        show_progress: bool = True,
     ) -> "VoxelMap":
         """Create a VoxelMap from a PointCloud.
 
@@ -78,7 +77,6 @@ class VoxelMap:
             pointcloud: The input PointCloud object.
             voxel_size: Size of each voxel.
             keep_copy: Whether to keep a deep copy of the point cloud data.
-            show_progress: Whether to show progress bar during construction.
 
         Returns:
             VoxelMap: The created voxel map.
@@ -128,8 +126,7 @@ class VoxelMap:
         # Convert lists to numpy arrays
         voxel_data["point_indices"] = voxel_data["point_indices"].apply(np.array)
 
-        if show_progress:
-            logger.debug(f"Created {len(voxel_data)} voxels")
+        logger.debug(f"Created {len(voxel_data)} voxels")
 
         # Handle point cloud reference
         if keep_copy:
