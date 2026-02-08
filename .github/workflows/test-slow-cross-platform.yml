@@ -53,3 +53,30 @@ jobs:
 
       - name: Run benchmark tests
         run: just benchmark
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ matrix.os }}
+          path: |
+            reports
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Generate benchmark summary
+        if: always()
+        run: |
+          echo "## 📊 Benchmark Results (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Benchmark artifacts have been uploaded and can be downloaded from the workflow run page." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📈 Generated Charts" >> $GITHUB_STEP_SUMMARY
+          if [ -d "reports/benchmarks" ]; then
+            for svg in reports/benchmarks/*.svg; do
+              if [ -f "$svg" ]; then
+                basename "$svg"
+                echo "- $(basename "$svg")" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+          fi
