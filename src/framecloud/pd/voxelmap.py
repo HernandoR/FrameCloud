@@ -83,7 +83,7 @@ class VoxelMap:
         """
         logger.debug(f"Creating VoxelMap with voxel_size={voxel_size}")
 
-        data = pointcloud.data.copy()
+        data = pointcloud.data
         num_points = len(data)
 
         if num_points == 0:
@@ -107,24 +107,29 @@ class VoxelMap:
             )
 
         # Calculate origin (minimum coordinates)
-        origin = np.array([data["X"].min(), data["Y"].min(), data["Z"].min()])
+        # origin = np.array([data["X"].min(), data["Y"].min(), data["Z"].min()])
+        origin = data[["X", "Y", "Z"]].min().to_numpy()
 
-        # Add original indices to the dataframe
-        data["_original_idx"] = np.arange(num_points)
+        # reserve space in new df, the index is curresponding
+        _voxel_df = pd.DataFrame({"_origin_idx": data.index})
 
         # Convert points to voxel coordinates (vectorized)
-        data["voxel_x"] = ((data["X"] - origin[0]) / voxel_size).astype(np.int32)
-        data["voxel_y"] = ((data["Y"] - origin[1]) / voxel_size).astype(np.int32)
-        data["voxel_z"] = ((data["Z"] - origin[2]) / voxel_size).astype(np.int32)
+        _voxel_df["voxel_x"] = (data["X"] - origin[0]) // voxel_size
+        _voxel_df["voxel_y"] = (data["Y"] - origin[1]) // voxel_size
+        _voxel_df["voxel_z"] = (data["Z"] - origin[2]) // voxel_size
 
         # Group by voxel coordinates and collect point indices
         logger.debug(f"Grouping {num_points} points by voxel coordinates")
-        grouped = data.groupby(["voxel_x", "voxel_y", "voxel_z"])
+        grouped = _voxel_df.groupby(["voxel_x", "voxel_y", "voxel_z"])
 
         # Use list aggregation and then convert to numpy arrays
-        voxel_data = grouped.agg(point_indices=("_original_idx", list)).reset_index()
+        # voxel_data = grouped.agg(point_indices=("_original_idx", list)).reset_index()
+        voxel_data = grouped.apply(
+            lambda x: pd.Series({"point_indices": x["_origin_idx"].to_numpy()})
+        ).reset_index()
+
         # Convert lists to numpy arrays
-        voxel_data["point_indices"] = voxel_data["point_indices"].apply(np.array)
+        # voxel_data["point_indices"] = voxel_data["point_indices"].apply(np.array)
 
         logger.debug(f"Created {len(voxel_data)} voxels")
 
@@ -144,7 +149,7 @@ class VoxelMap:
 
         return cls(
             voxel_size=voxel_size,
-            voxel_data=voxel_data,
+            voxel_data=voxel_data[["voxel_x", "voxel_y", "voxel_z", "point_indices"]],
             origin=origin,
             pointcloud=pc_ref,
             is_copy=is_copy,
@@ -234,6 +239,7 @@ class VoxelMap:
 
         if aggregation_method == "first":
             # Simply get first index from each voxel
+            # bad perf due to list comprehension
             representative_indices = np.array(
                 [idx_array[0] for idx_array in self.voxel_data["point_indices"]]
             )
@@ -393,3 +399,55 @@ class VoxelMap:
             ),
             "origin": self.origin.tolist(),
         }
+
+
+def make_paser():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run VoxelMap pipeline")
+    parser.add_argument(
+        "--num_points",
+        type=int,
+        default=1_000_000,
+        help="Number of points in the point cloud",
+    )
+    parser.add_argument(
+        "--voxel_size",
+        type=float,
+        default=1.0,
+        help="Voxel size for the VoxelMap",
+    )
+    return parser
+
+
+def main():
+    parser = make_paser()
+    args = parser.parse_args()
+
+    num_points = args.num_points
+    voxel_size = args.voxel_size
+
+    # Create random point cloud
+    data = pd.DataFrame(
+        {
+            "X": np.random.randn(num_points).astype(np.float32),
+            "Y": np.random.randn(num_points).astype(np.float32),
+            "Z": np.random.randn(num_points).astype(np.float32),
+        }
+    )
+    pc = PointCloud(data=data)
+    logger.info(f"Created point cloud with {num_points} points")
+    # Create VoxelMap
+    voxelmap = VoxelMap.from_pointcloud(pc, voxel_size=voxel_size)
+    logger.info(
+        f"Created VoxelMap with {voxelmap.num_voxels} voxels from {num_points} points"
+    )
+    # Export downsampled point cloud
+    downsampled_pc = voxelmap.export_pointcloud()
+    logger.info(
+        f"Exported downsampled point cloud with {len(downsampled_pc.data)} points"
+    )
+
+
+if __name__ == "__main__":
+    main()

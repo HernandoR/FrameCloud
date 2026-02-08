@@ -75,3 +75,7 @@ info:
     @echo "  - format: Format code"
     @echo "  - type-check: Run type checker"
     @echo "  - check: Run all quality checks"
+
+
+tracer file:
+    uv run viztracer {{file}} -o output/viztracer.html
