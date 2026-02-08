@@ -150,3 +150,134 @@ def np_to_pd_pointcloud(np_pc: NpPointCloud) -> PdPointCloud:
 
     df = pd.DataFrame(data)
     return PdPointCloud(data=df)
+
+
+# ============================================================================
+# Benchmark Fixtures
+# ============================================================================
+
+
+@pytest.fixture(
+    params=[
+        100_000,
+        1_000_000,
+        10_000_000,
+    ]
+)
+def small_benchmark_size(request):
+    """Parametrized fixture for smaller benchmark point cloud sizes."""
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        50_000_000,
+        100_000_000,
+    ]
+)
+def large_benchmark_size(request):
+    """Parametrized fixture for large benchmark point cloud sizes."""
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        10_000,
+        100_000,
+        1_000_000,
+    ]
+)
+def voxelmap_small_size(request):
+    """Parametrized fixture for smaller VoxelMap benchmark sizes."""
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        5_000_000,
+        10_000_000,
+    ]
+)
+def voxelmap_large_size(request):
+    """Parametrized fixture for large VoxelMap benchmark sizes."""
+    return request.param
+
+
+@pytest.fixture(params=["np", "pd"])
+def pointcloud_impl(request):
+    """Parametrized fixture for point cloud implementation type."""
+    return request.param
+
+
+def create_pointcloud(impl: str, num_points: int, with_attributes: bool = True):
+    """Factory function to create point clouds with specified implementation.
+
+    Args:
+        impl: Implementation type, either "np" or "pd".
+        num_points: Number of points in the point cloud.
+        with_attributes: Whether to include intensity attributes.
+
+    Returns:
+        A PointCloud instance (NpPointCloud or PdPointCloud).
+    """
+    import pandas as pd
+
+    np.random.seed(42)
+
+    if impl == "np":
+        points = np.random.randn(num_points, 3).astype(np.float32)
+        if with_attributes:
+            intensities = np.random.rand(num_points).astype(np.float32)
+            return NpPointCloud(points=points, attributes={"intensities": intensities})
+        return NpPointCloud(points=points)
+    elif impl == "pd":
+        df = pd.DataFrame(
+            {
+                "X": np.random.randn(num_points).astype(np.float32),
+                "Y": np.random.randn(num_points).astype(np.float32),
+                "Z": np.random.randn(num_points).astype(np.float32),
+            }
+        )
+        if with_attributes:
+            df["intensities"] = np.random.rand(num_points).astype(np.float32)
+        return PdPointCloud(data=df)
+    else:
+        raise ValueError(f"Unknown implementation: {impl}")
+
+
+def create_voxelmap_pointcloud(
+    impl: str, num_points: int, with_attributes: bool = True
+):
+    """Factory function to create point clouds for VoxelMap benchmarks.
+
+    Args:
+        impl: Implementation type, either "np" or "pd".
+        num_points: Number of points in the point cloud.
+        with_attributes: Whether to include intensity attributes.
+
+    Returns:
+        A PointCloud instance with points scaled by 100 for VoxelMap testing.
+    """
+    import pandas as pd
+
+    np.random.seed(42)
+
+    if impl == "np":
+        points = np.random.randn(num_points, 3).astype(np.float32) * 100
+        if with_attributes:
+            intensities = np.random.rand(num_points).astype(np.float32)
+            return NpPointCloud(points=points, attributes={"intensities": intensities})
+        return NpPointCloud(points=points)
+    elif impl == "pd":
+        df = pd.DataFrame(
+            {
+                "X": np.random.randn(num_points).astype(np.float32) * 100,
+                "Y": np.random.randn(num_points).astype(np.float32) * 100,
+                "Z": np.random.randn(num_points).astype(np.float32) * 100,
+            }
+        )
+        if with_attributes:
+            df["intensities"] = np.random.rand(num_points).astype(np.float32)
+        return PdPointCloud(data=df)
+    else:
+        raise ValueError(f"Unknown implementation: {impl}")

@@ -13,6 +13,7 @@ test-slow:
 
 # Internal: Create report directory structure
 _create_report_structure:
+    @rm reports/benchmarks/histogram* 2>/dev/null || true
     @mkdir -p reports/benchmarks
 
 # Run benchmark tests
