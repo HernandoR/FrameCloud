@@ -17,7 +17,7 @@ _create_report_structure:
 
 # Run benchmark tests
 benchmark: _create_report_structure 
-    uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
+    uv run pytest -m benchmark --benchmark-only
 
 # View benchmark histogram in reports/benchmarks/histogram/
 benchmark-view:
