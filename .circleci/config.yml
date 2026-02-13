@@ -2,12 +2,31 @@
 # See: https://circleci.com/docs/reference/configuration-reference
 version: 2.1
 
+# orbs:
+#   node: circleci/node@4.7
+
+executors:
+  docker: # Docker using the Base Convenience Image
+    docker:
+      - image: cimg/base:stable
+  linux: # a Linux VM running Ubuntu 20.04
+    machine:
+      image: ubuntu-2204:2025.09.1
+  macos: # macos executor running Xcode
+    macos:
+      xcode: 26.3.0
+
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/guides/orchestrate/jobs-steps/#jobs-overview & https://circleci.com/docs/reference/configuration-reference/#jobs
 jobs:
-  test-slow-ubuntu:
-    docker:
-      - image: cimg/python:3.12
+  test-slow:
+    parameters:
+      os:
+        type: executor
+      python-version:
+        type: string
+    executor: << parameters.os >>
+    resource_class: << parameters.resource_class >>
     steps:
       - checkout
       - run:
@@ -20,30 +39,16 @@ jobs:
             just benchmark
       - store_artifacts:
           path: reports
-          destination: benchmark-results
-
-  test-slow-macos:
-    macos:
-      xcode: "26.3.0"
-    resource_class: m4pro.medium
-    steps:
-      - checkout
-      - run:
-          name: "Setup environment"
-          command: scripts/setup-env.sh
-      - run:
-          name: "Run benchmark tests"
-          command: |
-            export PATH="$HOME/.cargo/bin:$PATH"
-            just benchmark
-      - store_artifacts:
-          path: reports
-          destination: benchmark-results-macos
+          destination: << parameters.artifact_destination >>
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
 workflows:
   slow-tests-workflow:
     jobs:
-      - test-slow-ubuntu
-      - test-slow-macos
+      - test-slow:
+          matrix:
+            parameters:
+              os: [docker, linux, macos]
+              python-version: ["3.10", "3.11", "3.12"]
+              resource_class: ["medium", "large"]
