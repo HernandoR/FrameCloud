@@ -30,6 +30,15 @@ jobs:
     executor: << parameters.os >>
     resource_class: << parameters.resource_class >>
     steps:
+      - run:
+          name: "Print environment info"
+          command: |
+            echo "Running on OS: << parameters.os >>"
+            echo "Using Python version: << parameters.python-version >>"
+            echo "Resource class: << parameters.resource_class >>"
+            echo "pipline.event.name: << pipeline.event.name >>"
+            echo "pipeline.event.action: << pipeline.event.action >>"
+
       - checkout
       - run:
           name: "Setup environment"
@@ -47,10 +56,7 @@ jobs:
 # See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
 workflows:
   slow-tests-workflow:
-    when:
-      or:
-        - pipeline.event.name == "api"
-        - pipeline.event.action == "labeled"
+    when: pipeline.event.name == "api" or pipeline.event.action == "labeled"
 
     jobs:
       - test-slow:
