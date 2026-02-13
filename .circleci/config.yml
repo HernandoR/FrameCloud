@@ -49,12 +49,8 @@ workflows:
   slow-tests-workflow:
     jobs:
       - test-slow:
-          # only if the wf is triggered on website, otherwise it will be triggered on every commit and PR, which is not what we want
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /website/
+          # only if the pipeline.event.name is "api"
+          when: << pipeline.event.name >> == "api"
           matrix:
             parameters:
               os: [linux]
