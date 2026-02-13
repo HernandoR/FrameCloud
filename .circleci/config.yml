@@ -22,6 +22,40 @@ jobs:
           name: "Say hello"
           command: "echo Hello, World!"
 
+  test-slow-ubuntu:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: "Setup environment"
+          command: scripts/setup-env.sh
+      - run:
+          name: "Run benchmark tests"
+          command: |
+            export PATH="$HOME/.cargo/bin:$PATH"
+            just benchmark
+      - store_artifacts:
+          path: reports
+          destination: benchmark-results
+
+  test-slow-macos:
+    macos:
+      xcode: "16.0"
+    steps:
+      - checkout
+      - run:
+          name: "Setup environment"
+          command: scripts/setup-env.sh
+      - run:
+          name: "Run benchmark tests"
+          command: |
+            export PATH="$HOME/.cargo/bin:$PATH"
+            just benchmark
+      - store_artifacts:
+          path: reports
+          destination: benchmark-results-macos
+
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
 workflows:
@@ -29,3 +63,8 @@ workflows:
     # Inside the workflow, you define the jobs you want to run.
     jobs:
       - say-hello
+
+  slow-tests-workflow:
+    jobs:
+      - test-slow-ubuntu
+      - test-slow-macos

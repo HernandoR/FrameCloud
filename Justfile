@@ -54,6 +54,11 @@ clean:
     find . -type d -name __pycache__ -exec rm -rf {} +
     find . -type f -name "*.pyc" -delete
 
+# Set up environment (install uv, Python, just, and dependencies)
+setup-env:
+    chmod +x scripts/setup-env.sh
+    scripts/setup-env.sh
+
 # Install all dependencies
 install:
     uv sync
