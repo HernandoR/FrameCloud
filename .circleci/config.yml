@@ -49,8 +49,8 @@ workflows:
   slow-tests-workflow:
     when:
       or:
-        - << parameters.pipeline.event.name >> == "api"
-        - << parameters.pipeline.event.action >> == "labeled"
+        - pipeline.event.name == "api"
+        - pipeline.event.action == "labeled"
 
     jobs:
       - test-slow:
