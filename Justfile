@@ -13,19 +13,21 @@ test-slow:
 
 # Internal: Create report directory structure
 _create_report_structure:
-    @rm reports/benchmarks/histogram* 2>/dev/null || true
     @mkdir -p reports/benchmarks
 
-# Run benchmark tests
-benchmark: _create_report_structure 
+# Run benchmark tests and generate plots
+benchmark: _create_report_structure
     uv run pytest -m benchmark --benchmark-only
+    @echo "\nGenerating custom benchmark plots..."
+    uv run python scripts/benchmark_plot.py
 
 # View benchmark histogram in reports/benchmarks/histogram/
 benchmark-view:
     @echo "Benchmark reports are saved in:"
     @echo "  - JSON: reports/benchmarks/benchmark.json"
-    @echo "  - Histogram: reports/benchmarks/histogram/"
-    @ls -lh reports/benchmarks/ 2>/dev/null || echo "No benchmark reports found. Run 'just benchmark' first."
+    @echo "  - Dashboard: reports/benchmarks/benchmark_dashboard.html"
+    @echo "  - Individual SVG plots: reports/benchmarks/*.svg"
+    @ls -lh reports/benchmarks/*.svg reports/benchmarks/*.html 2>/dev/null || echo "No benchmark reports found. Run 'just benchmark' first."
 
 # Run linting with ruff
 lint:
