@@ -11,12 +11,53 @@ To view previous benchmark results:
 """
 
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 from tests.conftest import create_pointcloud
+
+
+@lru_cache(maxsize=None)
+def _cached_pointcloud(impl: str, num_points: int, with_attributes: bool):
+    """Create and cache benchmark point clouds by parameter combination."""
+    return create_pointcloud(impl, num_points, with_attributes=with_attributes)
+
+
+@pytest.fixture
+def benchmark_pointcloud_no_attributes(pointcloud_impl, small_benchmark_size):
+    """Reusable point cloud fixture without attributes for benchmark tests."""
+    return _cached_pointcloud(pointcloud_impl, small_benchmark_size, False)
+
+
+@pytest.fixture
+def benchmark_pointcloud_with_attributes(pointcloud_impl, small_benchmark_size):
+    """Reusable point cloud fixture with attributes for benchmark tests."""
+    return _cached_pointcloud(pointcloud_impl, small_benchmark_size, True)
+
+
+@pytest.fixture
+def benchmark_pointcloud_class(pointcloud_impl):
+    """Get point cloud class by implementation."""
+    from framecloud.np.core import PointCloud as NpPointCloud
+    from framecloud.pd.core import PointCloud as PdPointCloud
+
+    return NpPointCloud if pointcloud_impl == "np" else PdPointCloud
+
+
+@pytest.fixture
+def benchmark_transform_matrix():
+    """Reusable transformation matrix for benchmark tests."""
+    return np.array([[2, 0, 0, 10], [0, 2, 0, 20], [0, 0, 2, 30], [0, 0, 0, 1]])
+
+
+@pytest.fixture
+def benchmark_new_attribute_values(small_benchmark_size):
+    """Reusable attribute values for add-attribute benchmark."""
+    np.random.seed(42)
+    return np.random.rand(small_benchmark_size).astype(np.float32)
 
 
 @pytest.mark.benchmark(group="pcl-creation")
@@ -38,15 +79,18 @@ class TestBenchmarkTransformation:
     """Benchmark tests for transforming point clouds."""
 
     def test_transform_pointcloud(
-        self, benchmark, pointcloud_impl, small_benchmark_size
+        self,
+        benchmark,
+        benchmark_pointcloud_no_attributes,
+        benchmark_transform_matrix,
+        small_benchmark_size,
     ):
         """Benchmark transformation with different implementations."""
-        pc = create_pointcloud(
-            pointcloud_impl, small_benchmark_size, with_attributes=False
+        result = benchmark(
+            benchmark_pointcloud_no_attributes.transform,
+            benchmark_transform_matrix,
+            inplace=False,
         )
-        matrix = np.array([[2, 0, 0, 10], [0, 2, 0, 20], [0, 0, 2, 30], [0, 0, 0, 1]])
-
-        result = benchmark(pc.transform, matrix, inplace=False)
         assert result.num_points == small_benchmark_size
 
 
@@ -54,13 +98,13 @@ class TestBenchmarkTransformation:
 class TestBenchmarkSampling:
     """Benchmark tests for sampling point clouds."""
 
-    def test_sample_pointcloud(self, benchmark, pointcloud_impl, small_benchmark_size):
+    def test_sample_pointcloud(
+        self, benchmark, benchmark_pointcloud_no_attributes, small_benchmark_size
+    ):
         """Benchmark sampling with different implementations."""
-        pc = create_pointcloud(
-            pointcloud_impl, small_benchmark_size, with_attributes=False
+        result = benchmark(
+            benchmark_pointcloud_no_attributes.sample, num_samples=10000, replace=False
         )
-
-        result = benchmark(pc.sample, num_samples=10000, replace=False)
         assert result.num_points == 10000
 
 
@@ -68,26 +112,24 @@ class TestBenchmarkSampling:
 class TestBenchmarkIO:
     """Benchmark tests for I/O operations with point clouds."""
 
-    def test_parquet_write(self, benchmark, pointcloud_impl, small_benchmark_size):
+    def test_parquet_write(self, benchmark, benchmark_pointcloud_with_attributes):
         """Benchmark parquet write with different implementations."""
-        pc = create_pointcloud(pointcloud_impl, small_benchmark_size)
-
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "benchmark.parquet"
-            benchmark(pc.to_parquet, file_path)
+            benchmark(benchmark_pointcloud_with_attributes.to_parquet, file_path)
 
-    def test_parquet_read(self, benchmark, pointcloud_impl, small_benchmark_size):
+    def test_parquet_read(
+        self,
+        benchmark,
+        benchmark_pointcloud_with_attributes,
+        benchmark_pointcloud_class,
+        small_benchmark_size,
+    ):
         """Benchmark parquet read with different implementations."""
-        from framecloud.np.core import PointCloud as NpPointCloud
-        from framecloud.pd.core import PointCloud as PdPointCloud
-
-        pc = create_pointcloud(pointcloud_impl, small_benchmark_size)
-        PointCloudClass = NpPointCloud if pointcloud_impl == "np" else PdPointCloud
-
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "benchmark.parquet"
-            pc.to_parquet(file_path)
-            result = benchmark(PointCloudClass.from_parquet, file_path)
+            benchmark_pointcloud_with_attributes.to_parquet(file_path)
+            result = benchmark(benchmark_pointcloud_class.from_parquet, file_path)
             assert result.num_points == small_benchmark_size
 
 
@@ -95,15 +137,17 @@ class TestBenchmarkIO:
 class TestBenchmarkAttributeOperations:
     """Benchmark tests for attribute operations with point clouds."""
 
-    def test_add_attribute(self, benchmark, pointcloud_impl, small_benchmark_size):
+    def test_add_attribute(
+        self,
+        benchmark,
+        benchmark_pointcloud_no_attributes,
+        benchmark_new_attribute_values,
+    ):
         """Benchmark adding attributes with different implementations."""
 
         def add_attribute():
-            pc = create_pointcloud(
-                pointcloud_impl, small_benchmark_size, with_attributes=False
-            )
-            new_attr = np.random.rand(small_benchmark_size).astype(np.float32)
-            pc.add_attribute("new_attribute", new_attr)
+            pc = benchmark_pointcloud_no_attributes.model_copy(deep=True)
+            pc.add_attribute("new_attribute", benchmark_new_attribute_values)
             return pc
 
         result = benchmark(add_attribute)

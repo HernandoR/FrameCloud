@@ -15,6 +15,11 @@ from framecloud.exceptions import ArrayShapeError
 from framecloud.pd.core import PointCloud
 
 
+def _to_numpy_array(series):
+    """直接将分组后的Series转换为NumPy数组（聚合函数）"""
+    return np.asarray(series.values)
+
+
 class VoxelMap:
     """A voxel map for spatial downsampling of point clouds using pandas.
 
@@ -64,6 +69,93 @@ class VoxelMap:
         """Returns whether the pointcloud is a deep copy (read-only)."""
         return self._is_copy
 
+    @staticmethod
+    def _empty_voxel_data() -> pd.DataFrame:
+        return pd.DataFrame(
+            {
+                "voxel_x": pd.Series(dtype=np.int32),
+                "voxel_y": pd.Series(dtype=np.int32),
+                "voxel_z": pd.Series(dtype=np.int32),
+                "point_indices": pd.Series(dtype=object),
+            }
+        )
+
+    @classmethod
+    def _aggregate_voxel_points(
+        cls,
+        voxel_x: np.ndarray,
+        voxel_y: np.ndarray,
+        voxel_z: np.ndarray,
+        _origin_idx: np.ndarray,
+    ):
+        # voxel_cols = ["voxel_x", "voxel_y", "voxel_z"]
+
+        # 1. Sort by voxel coordinates
+        sort_idx = np.lexsort(
+            [
+                voxel_z,
+                voxel_y,
+                voxel_x,
+            ]
+        )
+        # sorted_origins = _voxel_df["_origin_idx"].values[sort_idx]
+        # sorted_keys = _voxel_df[voxel_cols].values[sort_idx]
+
+        sorted_origins = _origin_idx[sort_idx]
+        sorted_keys = np.stack(
+            (voxel_x[sort_idx], voxel_y[sort_idx], voxel_z[sort_idx]), axis=1
+        )
+
+        # 2. Find group boundaries (where voxel key changes)
+        mask = np.any(sorted_keys[1:] != sorted_keys[:-1], axis=1)
+        split_indices = np.flatnonzero(mask) + 1
+
+        # 3. Split into per-voxel arrays — no Python loop
+        point_indices = np.split(sorted_origins, split_indices)
+
+        # 4. Extract unique voxel coordinates (first row of each group)
+        unique_coords = sorted_keys[np.r_[0, split_indices]]
+
+        # return named tuple
+        res = pd.DataFrame(
+            {
+                "voxel_x": unique_coords[:, 0],
+                "voxel_y": unique_coords[:, 1],
+                "voxel_z": unique_coords[:, 2],
+                "point_indices": point_indices,
+            }
+        )
+        return res
+
+    @classmethod
+    def _build_origin_and_voxel_data(
+        cls,
+        data: pd.DataFrame,
+        voxel_size: float,
+    ) -> tuple[np.ndarray, pd.DataFrame]:
+        origin = data[["X", "Y", "Z"]].min().to_numpy()
+
+        # reserve space in new df, the index is curresponding
+        # _voxel_df = pd.DataFrame({"_origin_idx": data.index})
+
+        # Convert points to voxel coordinates (vectorized)
+        # mark type as int32 to save memory, since we don't expect more than 2 billion voxels in a single dimension
+        # _voxel_df["voxel_x"] = ((data["X"] - origin[0]) // voxel_size).astype(np.int32)
+        # _voxel_df["voxel_y"] = ((data["Y"] - origin[1]) // voxel_size).astype(np.int32)
+        # _voxel_df["voxel_z"] = ((data["Z"] - origin[2]) // voxel_size).astype(np.int32)
+        voxel_x = ((data["X"] - origin[0]) // voxel_size).astype(np.int32).to_numpy()
+        voxel_y = ((data["Y"] - origin[1]) // voxel_size).astype(np.int32).to_numpy()
+        voxel_z = ((data["Z"] - origin[2]) // voxel_size).astype(np.int32).to_numpy()
+        _origin_idx = data.index.to_numpy()
+
+        voxel_data = cls._aggregate_voxel_points(
+            voxel_x,
+            voxel_y,
+            voxel_z,
+            _origin_idx,
+        )
+        return origin, voxel_data
+
     @classmethod
     def from_pointcloud(
         cls,
@@ -90,14 +182,7 @@ class VoxelMap:
             logger.warning("Empty point cloud provided.")
             empty_data = pd.DataFrame({"X": [], "Y": [], "Z": []})
             empty_pc = PointCloud(data=empty_data)
-            empty_voxel_data = pd.DataFrame(
-                {
-                    "voxel_x": pd.Series(dtype=np.int32),
-                    "voxel_y": pd.Series(dtype=np.int32),
-                    "voxel_z": pd.Series(dtype=np.int32),
-                    "point_indices": pd.Series(dtype=object),
-                }
-            )
+            empty_voxel_data = cls._empty_voxel_data()
             return cls(
                 voxel_size=voxel_size,
                 voxel_data=empty_voxel_data,
@@ -106,32 +191,7 @@ class VoxelMap:
                 is_copy=True,
             )
 
-        # Calculate origin (minimum coordinates)
-        # origin = np.array([data["X"].min(), data["Y"].min(), data["Z"].min()])
-        origin = data[["X", "Y", "Z"]].min().to_numpy()
-
-        # reserve space in new df, the index is curresponding
-        _voxel_df = pd.DataFrame({"_origin_idx": data.index})
-
-        # Convert points to voxel coordinates (vectorized)
-        _voxel_df["voxel_x"] = (data["X"] - origin[0]) // voxel_size
-        _voxel_df["voxel_y"] = (data["Y"] - origin[1]) // voxel_size
-        _voxel_df["voxel_z"] = (data["Z"] - origin[2]) // voxel_size
-
-        # Group by voxel coordinates and collect point indices
-        logger.debug(f"Grouping {num_points} points by voxel coordinates")
-        grouped = _voxel_df.groupby(["voxel_x", "voxel_y", "voxel_z"])
-
-        # Use list aggregation and then convert to numpy arrays
-        # voxel_data = grouped.agg(point_indices=("_original_idx", list)).reset_index()
-        voxel_data = grouped.apply(
-            lambda x: pd.Series({"point_indices": x["_origin_idx"].to_numpy()})
-        ).reset_index()
-
-        # Convert lists to numpy arrays
-        # voxel_data["point_indices"] = voxel_data["point_indices"].apply(np.array)
-
-        logger.debug(f"Created {len(voxel_data)} voxels")
+        origin, voxel_data = cls._build_origin_and_voxel_data(data, voxel_size)
 
         # Handle point cloud reference
         if keep_copy:
@@ -149,7 +209,7 @@ class VoxelMap:
 
         return cls(
             voxel_size=voxel_size,
-            voxel_data=voxel_data[["voxel_x", "voxel_y", "voxel_z", "point_indices"]],
+            voxel_data=voxel_data,
             origin=origin,
             pointcloud=pc_ref,
             is_copy=is_copy,
@@ -267,23 +327,14 @@ class VoxelMap:
             # Use squared distance (avoid sqrt for performance)
             squared_distances = np.sum((points - centers_for_points) ** 2, axis=1)
 
-            # Build DataFrame to find nearest point per voxel
-            distance_df = pd.DataFrame(
-                {
-                    "voxel_idx": voxel_idx_for_points,
-                    "point_idx": all_point_indices,
-                    "sqdist": squared_distances,
-                }
+            # Pure NumPy selection to avoid pandas groupby/idxmin C-extension path.
+            # 1) sort by voxel index then distance
+            sorted_order = np.lexsort((squared_distances, voxel_idx_for_points))
+            # 2) pick first occurrence per voxel in sorted order
+            _, first_occurrence = np.unique(
+                voxel_idx_for_points[sorted_order], return_index=True
             )
-
-            # For each voxel, select the point with minimum squared distance
-            nearest_rows = distance_df.loc[
-                distance_df.groupby("voxel_idx")["sqdist"].idxmin()
-            ]
-
-            # Ensure ordering by voxel index to match voxel_data order
-            nearest_rows = nearest_rows.sort_values("voxel_idx")
-            representative_indices = nearest_rows["point_idx"].to_numpy()
+            representative_indices = all_point_indices[sorted_order[first_occurrence]]
         else:
             raise ValueError(f"Unknown aggregation method: {aggregation_method}")
 
@@ -332,44 +383,16 @@ class VoxelMap:
 
         if num_points == 0:
             logger.warning("Empty point cloud.")
-            self.voxel_data = pd.DataFrame(
-                {
-                    "voxel_x": pd.Series(dtype=np.int32),
-                    "voxel_y": pd.Series(dtype=np.int32),
-                    "voxel_z": pd.Series(dtype=np.int32),
-                    "point_indices": pd.Series(dtype=object),
-                }
-            )
+            self.voxel_data = self._empty_voxel_data()
             self.origin = np.zeros(3)
             return
 
-        # Recalculate origin
-        self.origin = np.array([data["X"].min(), data["Y"].min(), data["Z"].min()])
-
-        # Add original indices
-        data["_original_idx"] = np.arange(num_points)
-
-        # Convert points to voxel coordinates
-        data["voxel_x"] = ((data["X"] - self.origin[0]) / self.voxel_size).astype(
-            np.int32
-        )
-        data["voxel_y"] = ((data["Y"] - self.origin[1]) / self.voxel_size).astype(
-            np.int32
-        )
-        data["voxel_z"] = ((data["Z"] - self.origin[2]) / self.voxel_size).astype(
-            np.int32
+        self.origin, self.voxel_data = self._build_origin_and_voxel_data(
+            data,
+            self.voxel_size,
         )
 
-        # Group by voxel coordinates
-        grouped = data.groupby(["voxel_x", "voxel_y", "voxel_z"])
-        voxel_data = grouped.agg(
-            point_indices=("_original_idx", lambda x: [x.to_numpy()])
-        ).reset_index()
-        voxel_data["point_indices"] = voxel_data["point_indices"].apply(lambda x: x[0])
-
-        self.voxel_data = voxel_data
-
-        logger.debug(f"Refreshed VoxelMap with {len(voxel_data)} voxels")
+        logger.debug(f"Refreshed VoxelMap with {len(self.voxel_data)} voxels")
 
     def get_statistics(self) -> dict[str, Any]:
         """Get statistics about the voxel map.
@@ -408,7 +431,7 @@ def make_paser():
     parser.add_argument(
         "--num_points",
         type=int,
-        default=1_000_000,
+        default=10_000_000,
         help="Number of points in the point cloud",
     )
     parser.add_argument(
