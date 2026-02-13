@@ -47,10 +47,14 @@ jobs:
 # See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
 workflows:
   slow-tests-workflow:
+    when:
+      or:
+        - << pipeline.event.name >> == "api"
+        - << pipeline.event.action >> == "labeled"
+
     jobs:
       - test-slow:
           # only if the pipeline.event.name is "api"
-          when: << pipeline.event.name >> == "api"
           matrix:
             parameters:
               os: [linux]
