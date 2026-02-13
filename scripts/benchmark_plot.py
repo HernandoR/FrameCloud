@@ -143,7 +143,9 @@ class BenchmarkPlotter:
     4. Generating a comprehensive dashboard
     """
 
-    def __init__(self, json_path: Path, output_dir: Path, config: PlotConfig | None = None):
+    def __init__(
+        self, json_path: Path, output_dir: Path, config: PlotConfig | None = None
+    ):
         """Initialize the plotter with paths and configuration.
 
         Args:
@@ -167,7 +169,9 @@ class BenchmarkPlotter:
         with open(self.json_path) as f:
             data = json.load(f)
 
-        self.results = [BenchmarkResult.from_json(b) for b in data.get("benchmarks", [])]
+        self.results = [
+            BenchmarkResult.from_json(b) for b in data.get("benchmarks", [])
+        ]
 
     def group_results(self) -> dict[str, list[BenchmarkResult]]:
         """Group benchmark results by test group.
@@ -221,11 +225,11 @@ class BenchmarkPlotter:
             # Create detailed hover text with statistics
             hover_text = (
                 f"<b>{label}</b><br>"
-                f"Mean: {result.mean*1000:.2f} ms<br>"
-                f"Median: {result.median*1000:.2f} ms<br>"
-                f"Min: {result.min_time*1000:.2f} ms<br>"
-                f"Max: {result.max_time*1000:.2f} ms<br>"
-                f"StdDev: {result.stddev*1000:.2f} ms<br>"
+                f"Mean: {result.mean * 1000:.2f} ms<br>"
+                f"Median: {result.median * 1000:.2f} ms<br>"
+                f"Min: {result.min_time * 1000:.2f} ms<br>"
+                f"Max: {result.max_time * 1000:.2f} ms<br>"
+                f"StdDev: {result.stddev * 1000:.2f} ms<br>"
                 f"OPS: {result.ops:.2f}<br>"
                 f"Rounds: {result.rounds}"
             )
@@ -255,23 +259,33 @@ class BenchmarkPlotter:
         fig.update_layout(
             title=dict(
                 text=f"Benchmark: {group_name}",
-                font=dict(size=self.config.title_font_size, family=self.config.font_family),
+                font=dict(
+                    size=self.config.title_font_size, family=self.config.font_family
+                ),
             ),
             xaxis=dict(
                 title=dict(
                     text="Mean Time (ms)",
-                    font=dict(family=self.config.font_family, size=self.config.font_size),
+                    font=dict(
+                        family=self.config.font_family, size=self.config.font_size
+                    ),
                 ),
                 gridcolor="lightgray",
                 showgrid=True,
-                tickfont=dict(family=self.config.font_family, size=self.config.font_size),
+                tickfont=dict(
+                    family=self.config.font_family, size=self.config.font_size
+                ),
             ),
             yaxis=dict(
                 title=dict(
                     text="Test Case",
-                    font=dict(family=self.config.font_family, size=self.config.font_size),
+                    font=dict(
+                        family=self.config.font_family, size=self.config.font_size
+                    ),
                 ),
-                tickfont=dict(family=self.config.font_family, size=self.config.font_size),
+                tickfont=dict(
+                    family=self.config.font_family, size=self.config.font_size
+                ),
                 automargin=True,
             ),
             height=chart_height,
@@ -316,7 +330,7 @@ class BenchmarkPlotter:
         )
 
         # Add each group as a subplot
-        for idx, (group_name, results) in enumerate(sorted(groups.items()), start=1):
+        for idx, (_group_name, results) in enumerate(sorted(groups.items()), start=1):
             # Sort and prepare data
             results_sorted = sorted(
                 results, key=lambda r: (self._size_sort_key(r.size), r.impl)
@@ -329,8 +343,8 @@ class BenchmarkPlotter:
             # Create hover texts
             hover_texts = [
                 f"<b>{r.impl}-{r.size}</b><br>"
-                f"Mean: {r.mean*1000:.2f} ms<br>"
-                f"Median: {r.median*1000:.2f} ms<br>"
+                f"Mean: {r.mean * 1000:.2f} ms<br>"
+                f"Median: {r.median * 1000:.2f} ms<br>"
                 f"OPS: {r.ops:.2f}"
                 for r in results_sorted
             ]
