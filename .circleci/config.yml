@@ -25,6 +25,8 @@ jobs:
         type: executor
       python-version:
         type: string
+      resource_class:
+        type: string
     executor: << parameters.os >>
     resource_class: << parameters.resource_class >>
     steps:
@@ -39,7 +41,7 @@ jobs:
             just benchmark
       - store_artifacts:
           path: reports
-          destination: << parameters.artifact_destination >>
+          destination: "benchmark-reports-<< parameters.os >>-py<< parameters.python-version >>-<< parameters.resource_class >>"
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
@@ -49,6 +51,6 @@ workflows:
       - test-slow:
           matrix:
             parameters:
-              os: [docker, linux, macos]
+              os: [docker, linux]
               python-version: ["3.10", "3.11", "3.12"]
               resource_class: ["medium", "large"]
