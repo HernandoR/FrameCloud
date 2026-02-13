@@ -49,8 +49,14 @@ workflows:
   slow-tests-workflow:
     jobs:
       - test-slow:
+          # only if the wf is triggered on website, otherwise it will be triggered on every commit and PR, which is not what we want
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /website/
           matrix:
             parameters:
-              os: [docker, linux]
+              os: [linux]
               python-version: ["3.10", "3.11", "3.12"]
-              resource_class: ["medium", "large"]
+              resource_class: ["large"]
