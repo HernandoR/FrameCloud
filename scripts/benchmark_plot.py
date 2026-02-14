@@ -192,8 +192,8 @@ class BenchmarkPlotter:
         """Create a horizontal bar chart for a specific benchmark group.
 
         This method creates an interactive bar chart showing execution times for
-        all tests in a group, color-coded by implementation. Tests are sorted by
-        size and implementation for easy comparison.
+        all tests in a group, color-coded by implementation. Tests are grouped by
+        size then sorted by implementation for easy comparison.
 
         Args:
             group_name: Name of the benchmark group
@@ -202,7 +202,9 @@ class BenchmarkPlotter:
         Returns:
             Plotly Figure object
         """
-        # Sort results for consistent ordering: by size, then implementation
+        # Sort results: group by size (smallest first), then by implementation
+        # In Plotly horizontal bar charts, first item appears at bottom
+        # So we DON'T reverse to get 100K at top
         results_sorted = sorted(
             results, key=lambda r: (self._size_sort_key(r.size), r.impl)
         )
@@ -214,8 +216,8 @@ class BenchmarkPlotter:
         hover_texts = []
 
         for result in results_sorted:
-            # Create readable label combining implementation and size
-            label = f"{result.impl}-{result.size}"
+            # Create readable label: size first for grouping, then implementation
+            label = f"{result.size}-{result.impl}"
             test_labels.append(label)
             mean_times.append(result.mean * 1000)  # Convert to milliseconds
 
@@ -308,7 +310,7 @@ class BenchmarkPlotter:
         """Create a comprehensive dashboard with all benchmark groups.
 
         This method generates a multi-panel dashboard showing all benchmark groups
-        in subplots, allowing for easy comparison across different test categories.
+        in subplots with two columns: mean time and operations per second.
 
         Args:
             groups: Dictionary of grouped benchmark results
@@ -320,43 +322,59 @@ class BenchmarkPlotter:
         if num_groups == 0:
             return go.Figure()
 
-        # Create subplots in a vertical layout
+        # Create subplots: 2 columns (time and OPS) for each group
         fig = make_subplots(
             rows=num_groups,
-            cols=1,
-            subplot_titles=[f"{name}" for name in sorted(groups.keys())],
+            cols=2,
+            subplot_titles=[
+                title
+                for name in sorted(groups.keys())
+                for title in [f"{name} - Mean Time", f"{name} - Operations/sec"]
+            ],
             vertical_spacing=0.08,
-            specs=[[{"type": "bar"}] for _ in range(num_groups)],
+            horizontal_spacing=0.1,
+            specs=[[{"type": "bar"}, {"type": "bar"}] for _ in range(num_groups)],
         )
 
-        # Add each group as a subplot
+        # Add each group as a row with two columns
         for idx, (_group_name, results) in enumerate(sorted(groups.items()), start=1):
-            # Sort and prepare data
+            # Sort and prepare data: smallest sizes first (no reverse)
+            # In Plotly horizontal bar charts, first item appears at bottom
             results_sorted = sorted(
-                results, key=lambda r: (self._size_sort_key(r.size), r.impl)
+                results,
+                key=lambda r: (self._size_sort_key(r.size), r.impl),
             )
 
-            test_labels = [f"{r.impl}-{r.size}" for r in results_sorted]
+            test_labels = [f"{r.size}-{r.impl}" for r in results_sorted]
             mean_times = [r.mean * 1000 for r in results_sorted]
+            ops_values = [r.ops for r in results_sorted]
             colors = [self.config.get_color(r.impl) for r in results_sorted]
 
-            # Create hover texts
-            hover_texts = [
-                f"<b>{r.impl}-{r.size}</b><br>"
+            # Create hover texts for time column
+            hover_texts_time = [
+                f"<b>{r.size}-{r.impl}</b><br>"
                 f"Mean: {r.mean * 1000:.2f} ms<br>"
                 f"Median: {r.median * 1000:.2f} ms<br>"
-                f"OPS: {r.ops:.2f}"
+                f"StdDev: {r.stddev * 1000:.2f} ms"
                 for r in results_sorted
             ]
 
-            # Add bar trace to subplot
+            # Create hover texts for OPS column
+            hover_texts_ops = [
+                f"<b>{r.size}-{r.impl}</b><br>"
+                f"OPS: {r.ops:.2f}<br>"
+                f"Mean: {r.mean * 1000:.2f} ms"
+                for r in results_sorted
+            ]
+
+            # Add bar trace to first column (time)
             fig.add_trace(
                 go.Bar(
                     y=test_labels,
                     x=mean_times,
                     orientation="h",
                     marker=dict(color=colors),
-                    hovertext=hover_texts,
+                    hovertext=hover_texts_time,
                     hoverinfo="text",
                     showlegend=False,
                     width=self.config.bar_height,
@@ -365,7 +383,23 @@ class BenchmarkPlotter:
                 col=1,
             )
 
-            # Update axes for this subplot
+            # Add bar trace to second column (OPS)
+            fig.add_trace(
+                go.Bar(
+                    y=test_labels,
+                    x=ops_values,
+                    orientation="h",
+                    marker=dict(color=colors),
+                    hovertext=hover_texts_ops,
+                    hoverinfo="text",
+                    showlegend=False,
+                    width=self.config.bar_height,
+                ),
+                row=idx,
+                col=2,
+            )
+
+            # Update axes for time subplot (first column)
             fig.update_xaxes(
                 title_text="Mean Time (ms)",
                 gridcolor="lightgray",
@@ -374,6 +408,17 @@ class BenchmarkPlotter:
                 col=1,
             )
             fig.update_yaxes(title_text="Test Case", row=idx, col=1)
+
+            # Update axes for OPS subplot (second column)
+            fig.update_xaxes(
+                title_text="Operations/sec",
+                gridcolor="lightgray",
+                showgrid=True,
+                row=idx,
+                col=2,
+            )
+            # Match y-axis labels exactly with first column
+            fig.update_yaxes(title_text="", row=idx, col=2, showticklabels=True)
 
         # Calculate total height
         total_tests = sum(len(results) for results in groups.values())
@@ -398,7 +443,7 @@ class BenchmarkPlotter:
         """Generate and save all plots to the output directory.
 
         This method creates:
-        1. Individual SVG plots for each benchmark group
+        1. Individual SVG plots for each benchmark group in plots/ subdirectory
         2. A comprehensive HTML dashboard with all results
         """
         if not self.results:
@@ -407,10 +452,14 @@ class BenchmarkPlotter:
 
         groups = self.group_results()
 
+        # Create plots subdirectory for SVG files
+        plots_dir = self.output_dir / "plots"
+        plots_dir.mkdir(parents=True, exist_ok=True)
+
         # Create individual SVG plots per group
         for group_name, results in groups.items():
             fig = self.create_group_plot(group_name, results)
-            output_path = self.output_dir / f"{group_name}.svg"
+            output_path = plots_dir / f"{group_name}.svg"
             fig.write_image(str(output_path))
             print(f"✓ Created: {output_path}")
 
@@ -422,7 +471,7 @@ class BenchmarkPlotter:
 
         # Also create an SVG version of dashboard if there's only one group
         if len(groups) == 1:
-            dashboard_svg_path = self.output_dir / "benchmark_dashboard.svg"
+            dashboard_svg_path = plots_dir / "benchmark_dashboard.svg"
             dashboard_fig.write_image(str(dashboard_svg_path))
             print(f"✓ Created: {dashboard_svg_path}")
 

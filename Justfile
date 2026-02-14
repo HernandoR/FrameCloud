@@ -26,8 +26,8 @@ benchmark-view:
     @echo "Benchmark reports are saved in:"
     @echo "  - JSON: reports/benchmarks/benchmark.json"
     @echo "  - Dashboard: reports/benchmarks/benchmark_dashboard.html"
-    @echo "  - Individual SVG plots: reports/benchmarks/*.svg"
-    @ls -lh reports/benchmarks/*.svg reports/benchmarks/*.html 2>/dev/null || echo "No benchmark reports found. Run 'just benchmark' first."
+    @echo "  - Individual SVG plots: reports/benchmarks/plots/*.svg"
+    @ls -lh reports/benchmarks/plots/*.svg reports/benchmarks/*.html 2>/dev/null || echo "No benchmark reports found. Run 'just benchmark' first."
 
 # Run linting with ruff
 lint:
