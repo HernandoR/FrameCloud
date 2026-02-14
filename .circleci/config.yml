@@ -42,7 +42,7 @@ jobs:
       - checkout
       - run:
           name: "Setup environment"
-          command: scripts/setup-env.sh
+          command: scripts/setup-env.sh << parameters.python-version >>
       - run:
           name: "Run benchmark tests"
           command: |

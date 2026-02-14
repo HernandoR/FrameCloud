@@ -15,9 +15,10 @@ else
     echo "✓ uv is already installed"
 fi
 
-# Set up Python 3.12
-echo "🐍 Setting up Python 3.12..."
-uv python install 3.12
+# Set up Python (use argument if provided, default to 3.12)
+PYTHON_VERSION="${1:-3.12}"
+echo "🐍 Setting up Python ${PYTHON_VERSION}..."
+uv python install "${PYTHON_VERSION}"
 
 # Install just
 if ! command -v just &> /dev/null; then
