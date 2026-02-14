@@ -9,7 +9,8 @@ Add pytest-benchmark to the FrameCloud project with automatic report generation 
 ## Changes Made
 
 ### 1. Dependencies Added
-- **pytest-benchmark[histogram]>=5.2.3** - Main benchmarking framework with histogram support
+- **pytest-benchmark[histogram]>=5.2.3** - Main benchmarking framework with autosave enabled
+- **plotly>=6.5.2** and **kaleido>=1.2.0** - Custom Plotly dashboards and SVG export
 - Additional dependencies automatically installed:
   - `py-cpuinfo==9.0.0` - CPU information for benchmark reports
   - `pygal==3.1.0` - SVG chart generation
@@ -28,12 +29,12 @@ Added benchmark-specific configuration:
 --benchmark-autosave                                    # Auto-save benchmark data
 --benchmark-storage=reports/benchmarks                  # Storage location
 --benchmark-json=reports/benchmarks/benchmark.json      # JSON report
---benchmark-histogram=reports/benchmarks/histogram      # Histogram SVGs
 ```
 
 #### Justfile
 Enhanced with new benchmark commands:
-- `just benchmark` - Run all benchmarks (including large-scale tests)
+- `just benchmark` - Run fast benchmarks (excludes slow cases)
+- `just benchmark-large` - Run slow benchmarks and merge with existing results
 - `just benchmark-view` - Show benchmark report locations and files
 
 Advanced behaviors like saving baselines (`--benchmark-save`), comparing runs (`--benchmark-compare`), or filtering by markers are handled directly via pytest-benchmark flags when invoking tests.
@@ -86,26 +87,24 @@ Added benchmarking section with:
 When benchmarks run, the following are automatically generated:
 
 1. **JSON Report** (`reports/benchmarks/benchmark.json`)
-   - Detailed statistics (min, max, mean, median, stddev)
+   - Combined benchmark results with statistics (min, max, mean, median, stddev)
    - Machine information (CPU, OS, Python version)
-   - Complete benchmark results
 
 2. **Historical Data** (`reports/benchmarks/Linux-CPython-3.12-64bit/*.json`)
    - Timestamped JSON files
    - Includes commit hash for tracking
    - Enables comparison over time
 
-3. **Histograms** (`reports/benchmarks/histogram-*.svg`)
-   - One SVG per benchmark group
-   - Visual representation of performance
-   - Interactive (can be opened in browser)
+3. **Plotly Visualizations**
+   - SVGs per benchmark group: `reports/benchmarks/plots/*.svg`
+   - Dashboard: `reports/benchmarks/benchmark_dashboard.html`
 
 ## Verification
 
 All benchmarks run successfully:
 - ✅ 24 tests passed
 - ✅ JSON reports generated
-- ✅ 5 histogram SVGs created
+- ✅ Plotly dashboard and SVGs created
 - ✅ Historical data saved
 - ✅ All Justfile commands work correctly
 
@@ -124,14 +123,17 @@ test_pd_create_pointcloud[1000000]     66.99    67.75    67.37     0.26    67.37
 ## Usage Examples
 
 ```bash
-# Run all benchmarks (including large-scale tests)
+# Run fast benchmarks (excluding slow cases)
 just benchmark
 
+# Run slow benchmarks and merge with latest fast results
+just benchmark-large
+
 # Compare with previous run (use pytest-benchmark flags directly)
-uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-compare
+uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-compare
 
 # Save current as baseline (use pytest-benchmark flags directly)
-uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-save=baseline
+uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only --benchmark-save=baseline
 
 # View report files
 just benchmark-view
@@ -140,7 +142,7 @@ just benchmark-view
 ## Benefits
 
 1. **Automated Performance Tracking**: Every benchmark run automatically saves results
-2. **Visual Analysis**: SVG histograms for easy performance visualization
+2. **Visual Analysis**: Plotly SVGs and dashboard for performance visualization
 3. **Regression Detection**: Compare current vs. baseline to catch performance issues
 4. **Historical Tracking**: All results saved with commit hash and timestamp
 5. **Easy to Use**: Simple commands via Justfile

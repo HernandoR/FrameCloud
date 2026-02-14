@@ -18,7 +18,9 @@ Features:
 """
 
 import json
+import re
 import sys
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -108,15 +110,7 @@ class BenchmarkResult:
             BenchmarkResult instance with extracted data
         """
         stats = bench_data["stats"]
-        params = bench_data.get("params", {})
-
-        # Extract implementation and size from params or name
-        impl = params.get("pointcloud_impl", "unknown")
-        param_str = bench_data.get("param", "")
-
-        # Parse size from param string (e.g., "np-100K" -> "100K")
-        parts = param_str.split("-")
-        size = parts[-1] if len(parts) > 1 else "unknown"
+        impl, size = cls._parse_impl_and_size(bench_data)
 
         return cls(
             name=bench_data["name"],
@@ -131,6 +125,54 @@ class BenchmarkResult:
             ops=stats["ops"],
             rounds=stats["rounds"],
         )
+
+    @staticmethod
+    def _parse_impl_and_size(bench_data: dict[str, Any]) -> tuple[str, str]:
+        """Parse implementation and size ensuring impl-size format.
+
+        Supports both impl-size and size-impl inputs for compatibility, but emits
+        a warning when the latter is encountered.
+        """
+        params = bench_data.get("params", {})
+        default_impl = (
+            params.get("pointcloud_impl")
+            or params.get("impl")
+            or params.get("voxelmap_impl")
+            or "unknown"
+        )
+        param_str = str(bench_data.get("param", "") or "")
+
+        impl_size_pattern = re.compile(
+            r"^(?P<impl>[A-Za-z0-9_]+)[-_](?P<size>[A-Za-z0-9_]+)$"
+        )
+        size_impl_pattern = re.compile(
+            r"^(?P<size>[A-Za-z0-9_]+)[-_](?P<impl>[A-Za-z0-9_]+)$"
+        )
+
+        if match := impl_size_pattern.match(param_str):
+            return match.group("impl"), match.group("size")
+
+        if match := size_impl_pattern.match(param_str):
+            warnings.warn(
+                f"Benchmark param '{param_str}' not in impl-size format; "
+                f"parsed as {match.group('impl')}-{match.group('size')}"
+            )
+            return match.group("impl"), match.group("size")
+
+        size_value = (
+            params.get("small_benchmark_size")
+            or params.get("large_benchmark_size")
+            or params.get("voxelmap_small_size")
+            or params.get("voxelmap_large_size")
+            or "unknown"
+        )
+
+        warnings.warn(
+            f"Could not parse impl-size from benchmark entry "
+            f"'{bench_data.get('name', '')}', defaulting to "
+            f"{default_impl}-{size_value}"
+        )
+        return default_impl, str(size_value)
 
 
 class BenchmarkPlotter:
@@ -202,9 +244,8 @@ class BenchmarkPlotter:
         Returns:
             Plotly Figure object
         """
-        # Sort results: group by size (smallest first), then by implementation
-        # In Plotly horizontal bar charts, first item appears at bottom
-        # So we DON'T reverse to get 100K at top
+        # Sort results: group by size (smallest first), then by implementation.
+        # y-axis category order is pinned to keep the smallest size at the top.
         results_sorted = sorted(
             results, key=lambda r: (self._size_sort_key(r.size), r.impl)
         )
@@ -216,8 +257,8 @@ class BenchmarkPlotter:
         hover_texts = []
 
         for result in results_sorted:
-            # Create readable label: size first for grouping, then implementation
-            label = f"{result.size}-{result.impl}"
+            # Create readable label: implementation first, then size
+            label = f"{result.impl}-{result.size}"
             test_labels.append(label)
             mean_times.append(result.mean * 1000)  # Convert to milliseconds
 
@@ -289,6 +330,8 @@ class BenchmarkPlotter:
                     family=self.config.font_family, size=self.config.font_size
                 ),
                 automargin=True,
+                categoryorder="array",
+                categoryarray=test_labels,
             ),
             height=chart_height,
             width=self.config.width,
@@ -338,21 +381,20 @@ class BenchmarkPlotter:
 
         # Add each group as a row with two columns
         for idx, (_group_name, results) in enumerate(sorted(groups.items()), start=1):
-            # Sort and prepare data: smallest sizes first (no reverse)
-            # In Plotly horizontal bar charts, first item appears at bottom
+            # Sort and prepare data: smallest sizes first (top of the chart)
             results_sorted = sorted(
                 results,
                 key=lambda r: (self._size_sort_key(r.size), r.impl),
             )
 
-            test_labels = [f"{r.size}-{r.impl}" for r in results_sorted]
+            test_labels = [f"{r.impl}-{r.size}" for r in results_sorted]
             mean_times = [r.mean * 1000 for r in results_sorted]
             ops_values = [r.ops for r in results_sorted]
             colors = [self.config.get_color(r.impl) for r in results_sorted]
 
             # Create hover texts for time column
             hover_texts_time = [
-                f"<b>{r.size}-{r.impl}</b><br>"
+                f"<b>{r.impl}-{r.size}</b><br>"
                 f"Mean: {r.mean * 1000:.2f} ms<br>"
                 f"Median: {r.median * 1000:.2f} ms<br>"
                 f"StdDev: {r.stddev * 1000:.2f} ms"
@@ -361,7 +403,7 @@ class BenchmarkPlotter:
 
             # Create hover texts for OPS column
             hover_texts_ops = [
-                f"<b>{r.size}-{r.impl}</b><br>"
+                f"<b>{r.impl}-{r.size}</b><br>"
                 f"OPS: {r.ops:.2f}<br>"
                 f"Mean: {r.mean * 1000:.2f} ms"
                 for r in results_sorted
@@ -407,7 +449,13 @@ class BenchmarkPlotter:
                 row=idx,
                 col=1,
             )
-            fig.update_yaxes(title_text="Test Case", row=idx, col=1)
+            fig.update_yaxes(
+                title_text="Test Case",
+                row=idx,
+                col=1,
+                categoryorder="array",
+                categoryarray=test_labels,
+            )
 
             # Update axes for OPS subplot (second column)
             fig.update_xaxes(
@@ -418,7 +466,14 @@ class BenchmarkPlotter:
                 col=2,
             )
             # Match y-axis labels exactly with first column
-            fig.update_yaxes(title_text="", row=idx, col=2, showticklabels=True)
+            fig.update_yaxes(
+                title_text="",
+                row=idx,
+                col=2,
+                showticklabels=True,
+                categoryorder="array",
+                categoryarray=test_labels,
+            )
 
         # Calculate total height
         total_tests = sum(len(results) for results in groups.values())
@@ -485,7 +540,7 @@ class BenchmarkPlotter:
         Returns:
             Integer representation for sorting
         """
-        size = size.upper()
+        size = size.upper().replace("_", "")
         multipliers = {"K": 1_000, "M": 1_000_000, "B": 1_000_000_000}
 
         for suffix, multiplier in multipliers.items():

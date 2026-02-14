@@ -48,14 +48,14 @@ A minimal, practical project template for small Python projects and experiments.
 
 The project uses `pytest-benchmark` with custom Plotly visualization for automated performance benchmarking:
 
-- Run benchmarks:
+- Run fast benchmarks (excludes slow 50M+ cases):
   ```bash
   just benchmark
   ```
 
-- Compare with previous results:
+- Run large/slow benchmarks and merge with existing results:
   ```bash
-  uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-compare
+  just benchmark-large
   ```
 
 - View benchmark reports:
@@ -64,10 +64,11 @@ The project uses `pytest-benchmark` with custom Plotly visualization for automat
   ```
 
 Benchmark reports are automatically generated in `reports/benchmarks/` including:
-- JSON statistics (`benchmark.json`)
+- Combined JSON statistics (`benchmark.json`)
+- Regular/large JSON inputs (`benchmark.json` and `benchmark-large.json`)
 - Historical data (organized by commit hash and timestamp)
 - Interactive HTML dashboard (`benchmark_dashboard.html`) with all benchmark groups
-- Individual SVG plots per benchmark group (e.g., `pcl-creation.svg`, `pcl-io.svg`)
+- Individual SVG plots per benchmark group in `reports/benchmarks/plots/`
 
 The visualization system features:
 - Automatic test grouping by benchmark category

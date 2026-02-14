@@ -17,7 +17,22 @@ _create_report_structure:
 
 # Run benchmark tests and generate plots
 benchmark: _create_report_structure
-    uv run pytest -m benchmark --benchmark-only
+    uv run pytest -m "benchmark and not slow" --benchmark-only --benchmark-json=reports/benchmarks/benchmark.json
+    @echo "\nGenerating custom benchmark plots..."
+    uv run python scripts/benchmark_plot.py
+
+# Run large/slow benchmark tests and merge with regular results if available
+benchmark-large: _create_report_structure
+    uv run pytest -m "slow and benchmark" --benchmark-only --benchmark-json=reports/benchmarks/benchmark-large.json
+    @if [ -f reports/benchmarks/benchmark.json ]; then \
+        echo "\nMerging regular and large benchmark results..."; \
+        uv run python scripts/merge_benchmark_results.py \
+            reports/benchmarks/benchmark.json \
+            reports/benchmarks/benchmark-large.json \
+            --output reports/benchmarks/benchmark.json; \
+    else \
+        cp reports/benchmarks/benchmark-large.json reports/benchmarks/benchmark.json; \
+    fi
     @echo "\nGenerating custom benchmark plots..."
     uv run python scripts/benchmark_plot.py
 

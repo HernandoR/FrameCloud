@@ -1,0 +1,121 @@
+name: Large Benchmark Tests - Ubuntu
+
+on:
+  push:
+    branches:
+      - main
+      - "release/**"
+      - "release-*"
+    tags:
+      - "v*"
+      - "release*"
+    paths:
+      - "src/**"
+      - "tests/test_benchmark*.py"
+      - "scripts/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Justfile"
+      - ".github/workflows/benchmark-large-ubuntu.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark-regular:
+    name: Regular Benchmark Tests (Python 3.12)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.11"
+          enable-cache: "auto"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install just
+        run: uv tool install rust-just
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Run regular benchmarks
+        run: just benchmark
+
+      - name: Upload regular benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-regular-ubuntu-py3.12-${{ github.sha }}
+          path: reports
+          retention-days: 30
+          if-no-files-found: warn
+
+  benchmark-large:
+    name: Large Benchmark Tests (Python 3.12)
+    needs: benchmark-regular
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.11"
+          enable-cache: "auto"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install just
+        run: uv tool install rust-just
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Download regular benchmark artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-regular-ubuntu-py3.12-${{ github.sha }}
+          path: .
+
+      - name: Run large benchmarks and merge results
+        run: just benchmark-large
+
+      - name: Upload combined benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-combined-ubuntu-py3.12-${{ github.sha }}
+          path: reports
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Generate benchmark summary
+        if: always()
+        run: |
+          echo "## 📊 Combined Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Regular and large benchmark artifacts have been uploaded." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📈 Generated Charts" >> $GITHUB_STEP_SUMMARY
+          if [ -d "reports/benchmarks/plots" ]; then
+            for svg in reports/benchmarks/plots/*.svg; do
+              if [ -f "$svg" ]; then
+                echo "- $(basename "$svg")" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+          fi
