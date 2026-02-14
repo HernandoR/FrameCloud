@@ -54,7 +54,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results-ubuntu
+          name: benchmark-results-ubuntu-py3.12-${{ github.sha }}
           path: |
             reports
           retention-days: 30
