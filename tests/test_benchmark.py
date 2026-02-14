@@ -81,6 +81,7 @@ class TestBenchmarkTransformation:
     def test_transform_pointcloud(
         self,
         benchmark,
+        pointcloud_impl,
         benchmark_pointcloud_no_attributes,
         benchmark_transform_matrix,
         small_benchmark_size,
@@ -99,7 +100,11 @@ class TestBenchmarkSampling:
     """Benchmark tests for sampling point clouds."""
 
     def test_sample_pointcloud(
-        self, benchmark, benchmark_pointcloud_no_attributes, small_benchmark_size
+        self,
+        benchmark,
+        pointcloud_impl,
+        benchmark_pointcloud_no_attributes,
+        small_benchmark_size,
     ):
         """Benchmark sampling with different implementations."""
         result = benchmark(
@@ -121,6 +126,7 @@ class TestBenchmarkIO:
     def test_parquet_read(
         self,
         benchmark,
+        pointcloud_impl,
         benchmark_pointcloud_with_attributes,
         benchmark_pointcloud_class,
         small_benchmark_size,

@@ -109,6 +109,9 @@ class BenchmarkResult:
         Returns:
             BenchmarkResult instance with extracted data
         """
+        if "stats" not in bench_data or "group" not in bench_data or "name" not in bench_data:
+            raise ValueError(f"Invalid benchmark entry: missing required keys in {bench_data}")
+
         stats = bench_data["stats"]
         impl, size = cls._parse_impl_and_size(bench_data)
 
@@ -208,7 +211,7 @@ class BenchmarkPlotter:
             FileNotFoundError: If JSON file doesn't exist
             json.JSONDecodeError: If JSON is malformed
         """
-        with open(self.json_path) as f:
+        with open(self.json_path, encoding="utf-8") as f:
             data = json.load(f)
 
         self.results = [
@@ -515,8 +518,11 @@ class BenchmarkPlotter:
         for group_name, results in groups.items():
             fig = self.create_group_plot(group_name, results)
             output_path = plots_dir / f"{group_name}.svg"
-            fig.write_image(str(output_path))
-            print(f"✓ Created: {output_path}")
+            try:
+                fig.write_image(str(output_path))
+                print(f"✓ Created: {output_path}")
+            except Exception as exc:  # pragma: no cover - IO guard
+                print(f"✗ Failed to write {output_path}: {exc}")
 
         # Create comprehensive dashboard
         dashboard_fig = self.create_dashboard(groups)
@@ -527,8 +533,11 @@ class BenchmarkPlotter:
         # Also create an SVG version of dashboard if there's only one group
         if len(groups) == 1:
             dashboard_svg_path = plots_dir / "benchmark_dashboard.svg"
-            dashboard_fig.write_image(str(dashboard_svg_path))
-            print(f"✓ Created: {dashboard_svg_path}")
+            try:
+                dashboard_fig.write_image(str(dashboard_svg_path))
+                print(f"✓ Created: {dashboard_svg_path}")
+            except Exception as exc:  # pragma: no cover - IO guard
+                print(f"✗ Failed to write {dashboard_svg_path}: {exc}")
 
     @staticmethod
     def _size_sort_key(size: str) -> int:

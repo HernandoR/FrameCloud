@@ -25,7 +25,7 @@ on:
       - "pyproject.toml"
       - "uv.lock"
       - "Justfile"
-      - ".github/workflows/test-fast-ubuntu.yml"
+      - ".github/workflows/test-slow-ubuntu.yml"
   workflow_dispatch:
 
 permissions:

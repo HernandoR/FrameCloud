@@ -36,7 +36,7 @@ benchmark-large: _create_report_structure
     @echo "\nGenerating custom benchmark plots..."
     uv run python scripts/benchmark_plot.py
 
-# View benchmark histogram in reports/benchmarks/histogram/
+# View benchmark reports and visualizations in reports/benchmarks/
 benchmark-view:
     @echo "Benchmark reports are saved in:"
     @echo "  - JSON: reports/benchmarks/benchmark.json"

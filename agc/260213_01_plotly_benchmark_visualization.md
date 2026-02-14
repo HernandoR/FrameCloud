@@ -148,9 +148,9 @@ After running benchmarks, the following files are generated:
 - **Content**: Detailed statistics, machine info, commit info
 
 ### 2. Individual Group SVGs
-- **Location**: `reports/benchmarks/<group-name>.svg`
+- **Location**: `reports/benchmarks/plots/<group-name>.svg`
 - **Purpose**: Static visualizations for each benchmark group
-- **Examples**: `pcl-creation.svg`, `pcl-io.svg`, `pcl-transformation.svg`
+- **Examples**: `reports/benchmarks/plots/pcl-creation.svg`, `reports/benchmarks/plots/pcl-io.svg`, `reports/benchmarks/plots/pcl-transformation.svg`
 - **Use case**: Embedding in documentation, presentations
 
 ### 3. HTML Dashboard
