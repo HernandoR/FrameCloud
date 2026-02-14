@@ -13,19 +13,36 @@ test-slow:
 
 # Internal: Create report directory structure
 _create_report_structure:
-    @rm reports/benchmarks/histogram* 2>/dev/null || true
     @mkdir -p reports/benchmarks
 
-# Run benchmark tests
-benchmark: _create_report_structure 
-    uv run pytest -m benchmark --benchmark-only
+# Run benchmark tests and generate plots
+benchmark: _create_report_structure
+    uv run pytest -m "benchmark and not slow" --benchmark-only --benchmark-json=reports/benchmarks/benchmark.json
+    @echo "\nGenerating custom benchmark plots..."
+    uv run python scripts/benchmark_plot.py
 
-# View benchmark histogram in reports/benchmarks/histogram/
+# Run large/slow benchmark tests and merge with regular results if available
+benchmark-large: _create_report_structure
+    uv run pytest -m "slow and benchmark" --benchmark-only --benchmark-json=reports/benchmarks/benchmark-large.json
+    @if [ -f reports/benchmarks/benchmark.json ]; then \
+        echo "\nMerging regular and large benchmark results..."; \
+        uv run python scripts/merge_benchmark_results.py \
+            reports/benchmarks/benchmark.json \
+            reports/benchmarks/benchmark-large.json \
+            --output reports/benchmarks/benchmark.json; \
+    else \
+        cp reports/benchmarks/benchmark-large.json reports/benchmarks/benchmark.json; \
+    fi
+    @echo "\nGenerating custom benchmark plots..."
+    uv run python scripts/benchmark_plot.py
+
+# View benchmark reports and visualizations in reports/benchmarks/
 benchmark-view:
     @echo "Benchmark reports are saved in:"
     @echo "  - JSON: reports/benchmarks/benchmark.json"
-    @echo "  - Histogram: reports/benchmarks/histogram/"
-    @ls -lh reports/benchmarks/ 2>/dev/null || echo "No benchmark reports found. Run 'just benchmark' first."
+    @echo "  - Dashboard: reports/benchmarks/benchmark_dashboard.html"
+    @echo "  - Individual SVG plots: reports/benchmarks/plots/*.svg"
+    @ls -lh reports/benchmarks/plots/*.svg reports/benchmarks/*.html 2>/dev/null || echo "No benchmark reports found. Run 'just benchmark' first."
 
 # Run linting with ruff
 lint:

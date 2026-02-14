@@ -29,4 +29,6 @@ dev = [
     "viztracer>=1.1.1",
     "pytest-xdist>=3.8.0",
     "pytest-env>=1.2.0",
+    "plotly>=6.5.2",
+    "kaleido>=1.2.0",
 ]

@@ -1,4 +1,4 @@
-name: Slow Tests - Cross Platform
+name: Regular Benchmark Tests - Cross Platform
 
 on:
   push:
@@ -12,6 +12,8 @@ on:
     paths:
       - "src/**"
       - "tests/test_benchmark.py"
+      - "tests/test_benchmark_voxelmap.py"
+      - "scripts/**"
       - "pyproject.toml"
       - "uv.lock"
       - "Justfile"
@@ -23,7 +25,7 @@ permissions:
 
 jobs:
   test-slow-cross-platform:
-    name: Benchmark Tests (${{ matrix.os }})
+    name: Regular Benchmark Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -58,7 +60,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results-${{ matrix.os }}
+          name: benchmark-regular-${{ matrix.os }}
           path: |
             reports
           retention-days: 30
@@ -72,8 +74,8 @@ jobs:
           echo "Benchmark artifacts have been uploaded and can be downloaded from the workflow run page." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📈 Generated Charts" >> $GITHUB_STEP_SUMMARY
-          if [ -d "reports/benchmarks" ]; then
-            for svg in reports/benchmarks/*.svg; do
+          if [ -d "reports/benchmarks/plots" ]; then
+            for svg in reports/benchmarks/plots/*.svg; do
               if [ -f "$svg" ]; then
                 basename "$svg"
                 echo "- $(basename "$svg")" >> $GITHUB_STEP_SUMMARY

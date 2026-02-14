@@ -8,11 +8,19 @@ The project uses `pytest-benchmark` for automated performance benchmarking of po
 
 ### Basic Usage
 
-Run all benchmarks (including large-scale tests with 10M+ points):
+Run fast benchmarks (excludes slow 50M+ cases):
 ```bash
 just benchmark
 # or
-uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only
+uv run pytest tests/test_benchmark.py -m "benchmark and not slow" --benchmark-only
+```
+
+Run large/slow benchmarks and merge with the latest fast results:
+```bash
+just benchmark-large
+# or
+uv run pytest tests/test_benchmark.py -m "slow and benchmark" --benchmark-only --benchmark-json=reports/benchmarks/benchmark-large.json
+uv run python scripts/merge_benchmark_results.py reports/benchmarks/benchmark.json reports/benchmarks/benchmark-large.json --output reports/benchmarks/benchmark.json
 ```
 
 ### Advanced Options
@@ -36,21 +44,24 @@ uv run pytest tests/test_benchmark.py -m benchmark --benchmark-only --benchmark-
 
 ## Benchmark Reports
 
-After running benchmarks, reports are automatically generated in the `reports/benchmarks/` directory:
+After running benchmarks, reports are generated in the `reports/benchmarks/` directory:
 
 ### Report Locations
 
-- **JSON Report**: `reports/benchmarks/benchmark.json`
-  - Contains detailed statistics for the latest benchmark run
+- **Combined JSON Report**: `reports/benchmarks/benchmark.json`
+  - Contains detailed statistics for the latest merged benchmark run
   - Includes min, max, mean, median, stddev, IQR, and outliers
-  
+
+- **Large-only JSON Report**: `reports/benchmarks/benchmark-large.json`
+  - Output from the latest slow benchmark run before merging
+
 - **Historical Data**: `reports/benchmarks/Linux-CPython-3.12-64bit/*.json`
   - Individual JSON files for each benchmark run
   - Organized by commit hash and timestamp
-  
-- **Histogram**: `reports/benchmarks/histogram-*.svg`
-  - Visual representation of benchmark results
-  - One SVG file per benchmark group (creation, transformation, sampling, io, attributes)
+
+- **Plotly charts**:
+  - Interactive HTML dashboard: `reports/benchmarks/benchmark_dashboard.html`
+  - SVG per benchmark group: `reports/benchmarks/plots/*.svg`
 
 ### View Reports
 
@@ -87,20 +98,19 @@ The benchmarks are organized into several test groups:
 
 ### 6. Large-Scale (`group="large-scale"`)
 - Marked with `@pytest.mark.slow`
-- Tests with 10M+ points
-- Only run with `just benchmark-all`
+- Tests with 50M+ points
+- Run with `just benchmark-large`
 
 ## Configuration
 
 ### Benchmark-Specific Options
 
-Benchmark options are configured in the Justfile commands rather than globally in `pytest.ini` to avoid conflicts with regular test runs. Each benchmark command includes:
+Benchmark options are configured in `pytest.ini` and overridden in the Justfile commands to keep regular test runs unaffected. Each benchmark command includes:
 
 ```bash
 --benchmark-autosave          # Automatically save benchmark data
 --benchmark-storage=reports/benchmarks  # Where to store benchmark data
---benchmark-json=reports/benchmarks/benchmark.json  # JSON report location
---benchmark-histogram=reports/benchmarks/histogram  # Histogram SVG location
+--benchmark-json=reports/benchmarks/benchmark.json  # JSON report location (overridden for large runs)
 ```
 
 The `reports/benchmarks` directory is automatically created when running any benchmark command.
@@ -139,19 +149,18 @@ test_np_create_pointcloud[1000000]     66.30    70.04    66.80     0.94    66.54
 ## Troubleshooting
 
 ### Issue: Tests take too long
-**Solution**: Use `just benchmark` instead of `just benchmark-all` to skip slow tests
+**Solution**: Use `just benchmark` for the fast suite and run `just benchmark-large` separately for slow cases.
 
 ### Issue: Reports directory not found
 **Solution**: The directory is automatically created on first run. It's in `.gitignore` and won't be committed.
 
-### Issue: Histogram generation fails
-**Solution**: Ensure `pytest-benchmark[histogram]` is installed:
+### Issue: Plot export fails
+**Solution**: Ensure Plotly export dependencies are installed:
 ```bash
-uv add --dev 'pytest-benchmark[histogram]'
+uv sync --dev
 ```
 
 ## Dependencies
 
-- `pytest-benchmark[histogram]>=5.2.3` - Main benchmarking framework
-- `pygal>=3.1.0` - Histogram generation (installed with [histogram] extra)
-- `pygaljs>=1.0.2` - JavaScript for interactive histograms
+- `pytest-benchmark[histogram]>=5.2.3` - Benchmarking framework
+- `plotly>=6.5.2` and `kaleido>=1.2.0` - Plot generation and SVG export
