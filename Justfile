@@ -11,6 +11,9 @@ test: _create_report_structure
 test-slow:
     uv run pytest -n auto -m "slow"
 
+test-gpu: _create_report_structure
+    uv run pytest -m "gpu"
+
 # Internal: Create report directory structure
 _create_report_structure:
     @mkdir -p reports/benchmarks

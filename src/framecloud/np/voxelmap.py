@@ -9,6 +9,7 @@ from typing import Any, Callable
 import numpy as np
 from loguru import logger
 
+from framecloud._voxel_utils import aggregate_voxels_numpy
 from framecloud.exceptions import ArrayShapeError
 from framecloud.np.core import PointCloud
 
@@ -109,9 +110,11 @@ class VoxelMap:
         # Convert points to voxel coordinates
         voxel_coords_all = np.floor((points - origin) / voxel_size).astype(np.int32)
 
-        # Find unique voxels and their indices (vectorized)
-        unique_voxels, voxel_indice_per_point = np.unique(
-            voxel_coords_all, axis=0, return_inverse=True
+        unique_voxels, _, voxel_indice_per_point = aggregate_voxels_numpy(
+            voxel_coords_all[:, 0],
+            voxel_coords_all[:, 1],
+            voxel_coords_all[:, 2],
+            np.arange(num_points, dtype=np.intp),
         )
         logger.debug(f"Grouped {num_points} points into {len(unique_voxels)} voxels")
 
@@ -285,9 +288,11 @@ class VoxelMap:
             np.int32
         )
 
-        # Find unique voxels and their indices
-        unique_voxels, voxel_indice_per_point = np.unique(
-            voxel_coords_all, axis=0, return_inverse=True
+        unique_voxels, _, voxel_indice_per_point = aggregate_voxels_numpy(
+            voxel_coords_all[:, 0],
+            voxel_coords_all[:, 1],
+            voxel_coords_all[:, 2],
+            np.arange(num_points, dtype=np.intp),
         )
 
         self.voxel_coords = unique_voxels
