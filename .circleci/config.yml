@@ -36,8 +36,8 @@ jobs:
             echo "Running on OS: << parameters.os >>"
             echo "Using Python version: << parameters.python-version >>"
             echo "Resource class: << parameters.resource_class >>"
-            echo "pipline_event.name: {pipeline.event.name} "
-            echo "pipeline_event.action: ${pipeline.event.action} "
+            echo "pipeline_event.name: << pipeline.event.name >> "
+            echo "pipeline_event.action: << pipeline.event.action >> "
 
       - checkout
       - run:
