@@ -36,8 +36,8 @@ jobs:
             echo "Running on OS: << parameters.os >>"
             echo "Using Python version: << parameters.python-version >>"
             echo "Resource class: << parameters.resource_class >>"
-            echo "pipline.event.name: << pipeline.event.name >>"
-            echo "pipeline.event.action: << pipeline.event.action >>"
+            echo "pipline_event.name: {pipeline.event.name} "
+            echo "pipeline_event.action: ${pipeline.event.action} "
 
       - checkout
       - run:
@@ -56,7 +56,7 @@ jobs:
 # See: https://circleci.com/docs/guides/orchestrate/workflows/ & https://circleci.com/docs/reference/configuration-reference/#workflows
 workflows:
   slow-tests-workflow:
-    when: pipeline.event.name == "api" or pipeline.event.action == "labeled"
+    when: pipeline.trigger_source == "api" or pipeline.event.action == "labeled"
 
     jobs:
       - test-slow:
