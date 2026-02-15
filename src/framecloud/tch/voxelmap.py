@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-import numpy as np
 import torch
 from loguru import logger
 
-from framecloud._voxel_utils import aggregate_voxels_numpy
 from framecloud.exceptions import ArrayShapeError
 from framecloud.tch.core import PointCloud
 
@@ -78,22 +76,9 @@ class VoxelMap:
         origin = torch.min(points, dim=0).values
         voxel_coords_all = torch.floor((points - origin) / voxel_size).to(torch.int32)
 
-        if points.is_cuda:
-            unique_voxels, voxel_indice_per_point = torch.unique(
-                voxel_coords_all, dim=0, return_inverse=True
-            )
-        else:
-            voxel_x = voxel_coords_all[:, 0].cpu().numpy()
-            voxel_y = voxel_coords_all[:, 1].cpu().numpy()
-            voxel_z = voxel_coords_all[:, 2].cpu().numpy()
-            unique_np, _, voxel_index_np = aggregate_voxels_numpy(
-                voxel_x,
-                voxel_y,
-                voxel_z,
-                np.arange(num_points, dtype=np.intp),
-            )
-            unique_voxels = torch.from_numpy(unique_np).to(points.device)
-            voxel_indice_per_point = torch.from_numpy(voxel_index_np).to(points.device)
+        unique_voxels, voxel_indice_per_point = torch.unique(
+            voxel_coords_all, dim=0, return_inverse=True
+        )
 
         logger.debug(
             f"Created torch VoxelMap with {len(unique_voxels)} voxels from {num_points} points"
@@ -218,22 +203,9 @@ class VoxelMap:
         self.origin = torch.min(points, dim=0).values
         voxel_coords_all = torch.floor((points - self.origin) / self.voxel_size).to(torch.int32)
 
-        if points.is_cuda:
-            unique_voxels, voxel_indice_per_point = torch.unique(
-                voxel_coords_all, dim=0, return_inverse=True
-            )
-        else:
-            voxel_x = voxel_coords_all[:, 0].cpu().numpy()
-            voxel_y = voxel_coords_all[:, 1].cpu().numpy()
-            voxel_z = voxel_coords_all[:, 2].cpu().numpy()
-            unique_np, _, voxel_index_np = aggregate_voxels_numpy(
-                voxel_x,
-                voxel_y,
-                voxel_z,
-                np.arange(num_points, dtype=np.intp),
-            )
-            unique_voxels = torch.from_numpy(unique_np).to(points.device)
-            voxel_indice_per_point = torch.from_numpy(voxel_index_np).to(points.device)
+        unique_voxels, voxel_indice_per_point = torch.unique(
+            voxel_coords_all, dim=0, return_inverse=True
+        )
 
         self.voxel_coords = unique_voxels
         self.voxel_indice_per_point = voxel_indice_per_point
