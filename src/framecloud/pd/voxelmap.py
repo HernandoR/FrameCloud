@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from framecloud._voxel_utils import aggregate_voxels_numpy
 from framecloud.exceptions import ArrayShapeError
 from framecloud.pd.core import PointCloud
 
@@ -89,12 +88,34 @@ class VoxelMap:
         voxel_z: np.ndarray,
         _origin_idx: np.ndarray,
     ):
-        unique_coords, point_indices, _ = aggregate_voxels_numpy(
-            voxel_x,
-            voxel_y,
-            voxel_z,
-            _origin_idx,
+        # voxel_cols = ["voxel_x", "voxel_y", "voxel_z"]
+
+        # 1. Sort by voxel coordinates
+        sort_idx = np.lexsort(
+            [
+                voxel_z,
+                voxel_y,
+                voxel_x,
+            ]
         )
+        # sorted_origins = _voxel_df["_origin_idx"].values[sort_idx]
+        # sorted_keys = _voxel_df[voxel_cols].values[sort_idx]
+
+        sorted_origins = _origin_idx[sort_idx]
+        sorted_keys = np.stack(
+            (voxel_x[sort_idx], voxel_y[sort_idx], voxel_z[sort_idx]), axis=1
+        )
+
+        # 2. Find group boundaries (where voxel key changes)
+        mask = np.any(sorted_keys[1:] != sorted_keys[:-1], axis=1)
+        split_indices = np.flatnonzero(mask) + 1
+
+        # 3. Split into per-voxel arrays — no Python loop
+        point_indices = np.split(sorted_origins, split_indices)
+
+        # 4. Extract unique voxel coordinates (first row of each group)
+        unique_coords = sorted_keys[np.r_[0, split_indices]]
+
         res = pd.DataFrame(
             {
                 "voxel_x": unique_coords[:, 0],
