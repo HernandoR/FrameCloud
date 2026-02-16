@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Configuration
+DEFAULT_PYTHON_VERSION='3.12'
+
 echo "🔧 Setting up FrameCloud environment..."
 
 # Ensure PATH is set for new installations
@@ -15,9 +18,10 @@ else
     echo "✓ uv is already installed"
 fi
 
-# Set up Python 3.12
-echo "🐍 Setting up Python 3.12..."
-uv python install 3.12
+# Set up Python (use argument if provided, default to configured version)
+PYTHON_VERSION="${1:-$DEFAULT_PYTHON_VERSION}"
+echo "🐍 Setting up Python ${PYTHON_VERSION}..."
+uv python install "${PYTHON_VERSION}"
 
 # Install just
 if ! command -v just &> /dev/null; then
