@@ -109,8 +109,14 @@ class BenchmarkResult:
         Returns:
             BenchmarkResult instance with extracted data
         """
-        if "stats" not in bench_data or "group" not in bench_data or "name" not in bench_data:
-            raise ValueError(f"Invalid benchmark entry: missing required keys in {bench_data}")
+        if (
+            "stats" not in bench_data
+            or "group" not in bench_data
+            or "name" not in bench_data
+        ):
+            raise ValueError(
+                f"Invalid benchmark entry: missing required keys in {bench_data}"
+            )
 
         stats = bench_data["stats"]
         impl, size = cls._parse_impl_and_size(bench_data)

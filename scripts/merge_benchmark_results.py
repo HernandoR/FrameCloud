@@ -45,9 +45,7 @@ def merge_benchmarks(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Merge pytest-benchmark JSON reports."
-    )
+    parser = argparse.ArgumentParser(description="Merge pytest-benchmark JSON reports.")
     parser.add_argument(
         "primary",
         type=Path,
