@@ -81,7 +81,9 @@ class PointCloud:
             attributes={k: v.clone() for k, v in self.attributes.items()},
         )
 
-    def to(self, device: torch.device | str, non_blocking: bool = False) -> "PointCloud":
+    def to(
+        self, device: torch.device | str, non_blocking: bool = False
+    ) -> "PointCloud":
         """Move the point cloud to a device."""
         return PointCloud(
             points=self.points.to(device, non_blocking=non_blocking),
