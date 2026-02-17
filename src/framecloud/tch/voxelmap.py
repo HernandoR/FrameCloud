@@ -66,8 +66,12 @@ class VoxelMap:
             empty_pc = PointCloud(points=empty_points)
             return cls(
                 voxel_size=voxel_size,
-                voxel_coords=torch.empty((0, 3), dtype=torch.int32, device=points.device),
-                voxel_indices_per_point=torch.empty(0, dtype=torch.int64, device=points.device),
+                voxel_coords=torch.empty(
+                    (0, 3), dtype=torch.int32, device=points.device
+                ),
+                voxel_indices_per_point=torch.empty(
+                    0, dtype=torch.int64, device=points.device
+                ),
                 origin=torch.zeros(3, device=points.device),
                 pointcloud=empty_pc,
                 is_copy=True,
@@ -101,7 +105,10 @@ class VoxelMap:
         return int(self.voxel_coords.shape[0])
 
     def get_voxel_centers(self) -> torch.Tensor:
-        return self.origin + (self.voxel_coords.to(self.origin.dtype) + 0.5) * self.voxel_size
+        return (
+            self.origin
+            + (self.voxel_coords.to(self.origin.dtype) + 0.5) * self.voxel_size
+        )
 
     def get_point_indices(self, voxel_coord: tuple[int, int, int]) -> torch.Tensor:
         voxel_arr = torch.tensor(
@@ -118,7 +125,8 @@ class VoxelMap:
     def export_pointcloud(
         self,
         aggregation_method: str = "nearest_to_center",
-        custom_aggregation: dict[str, Callable[[torch.Tensor], torch.Tensor]] | None = None,
+        custom_aggregation: dict[str, Callable[[torch.Tensor], torch.Tensor]]
+        | None = None,
     ) -> PointCloud:
         if self.num_voxels == 0:
             logger.warning("Empty voxel map, returning empty point cloud")
@@ -134,9 +142,7 @@ class VoxelMap:
             starts = torch.cumsum(
                 torch.cat(
                     [
-                        torch.zeros(
-                            1, device=counts.device, dtype=counts.dtype
-                        ),
+                        torch.zeros(1, device=counts.device, dtype=counts.dtype),
                         counts[:-1],
                     ]
                 ),
@@ -148,20 +154,24 @@ class VoxelMap:
             point_centers = voxel_centers[voxel_idx]
             squared_distances = torch.sum((points - point_centers) ** 2, dim=1)
 
-            distance_order = torch.argsort(squared_distances)
-            chosen_indices: list[int] = []
-            seen_voxels: set[int] = set()
-            for idx in distance_order.tolist():
-                voxel_value = int(voxel_idx[idx])
-                if voxel_value in seen_voxels:
-                    continue
-                seen_voxels.add(voxel_value)
-                chosen_indices.append(idx)
-                if len(chosen_indices) == self.num_voxels:
-                    break
-            representative_indices = torch.tensor(
-                chosen_indices, device=points.device, dtype=torch.long
-            )
+            # Vectorized selection of nearest point to voxel center for each voxel.
+            # We want, for each voxel index, the point with minimal squared distance.
+            # Perform a lexicographic sort by (voxel_idx, squared_distances):
+            #   1. sort indices by distance (ascending, stable),
+            #   2. then sort those indices by voxel index (ascending, stable).
+            order_by_distance = torch.argsort(squared_distances, stable=True)
+            voxel_idx_sorted_by_distance = voxel_idx[order_by_distance]
+            order_by_voxel = torch.argsort(voxel_idx_sorted_by_distance, stable=True)
+            lex_order = order_by_distance[order_by_voxel]
+
+            voxel_idx_lex = voxel_idx[lex_order]
+            # Mark the first occurrence of each voxel in the lexicographically
+            # sorted sequence; within each voxel group, distances are ascending,
+            # so the first occurrence is the nearest point to the voxel center.
+            is_first = torch.ones_like(voxel_idx_lex, dtype=torch.bool)
+            is_first[1:] = voxel_idx_lex[1:] != voxel_idx_lex[:-1]
+
+            representative_indices = lex_order[is_first]
         else:
             raise ValueError(f"Unknown aggregation method: {aggregation_method}")
 
@@ -173,11 +183,15 @@ class VoxelMap:
                 aggregated_values = []
                 for voxel_index in range(self.num_voxels):
                     mask = voxel_idx == voxel_index
-                    aggregated_values.append(custom_aggregation[attr_name](attr_values[mask]))
+                    aggregated_values.append(
+                        custom_aggregation[attr_name](attr_values[mask])
+                    )
                 stacked = (
                     torch.stack(aggregated_values)
                     if isinstance(aggregated_values[0], torch.Tensor)
-                    else torch.tensor(aggregated_values, device=downsampled_points.device)
+                    else torch.tensor(
+                        aggregated_values, device=downsampled_points.device
+                    )
                 )
                 downsampled_attributes[attr_name] = stacked
             else:
@@ -195,13 +209,19 @@ class VoxelMap:
 
         if num_points == 0:
             logger.warning("Empty point cloud.")
-            self.voxel_coords = torch.empty((0, 3), dtype=torch.int32, device=points.device)
-            self.voxel_indices_per_point = torch.empty(0, dtype=torch.int64, device=points.device)
+            self.voxel_coords = torch.empty(
+                (0, 3), dtype=torch.int32, device=points.device
+            )
+            self.voxel_indices_per_point = torch.empty(
+                0, dtype=torch.int64, device=points.device
+            )
             self.origin = torch.zeros(3, device=points.device)
             return
 
         self.origin = torch.min(points, dim=0).values
-        voxel_coords_all = torch.floor((points - self.origin) / self.voxel_size).to(torch.int32)
+        voxel_coords_all = torch.floor((points - self.origin) / self.voxel_size).to(
+            torch.int32
+        )
 
         unique_voxels, voxel_indices_per_point = torch.unique(
             voxel_coords_all, dim=0, return_inverse=True
@@ -226,12 +246,20 @@ class VoxelMap:
             "num_points": self.pointcloud.num_points,
             "voxel_size": self.voxel_size,
             "compression_ratio": (
-                self.pointcloud.num_points / self.num_voxels if self.num_voxels > 0 else 0
+                self.pointcloud.num_points / self.num_voxels
+                if self.num_voxels > 0
+                else 0
             ),
-            "min_points_per_voxel": int(points_per_voxel.min()) if len(points_per_voxel) > 0 else 0,
-            "max_points_per_voxel": int(points_per_voxel.max()) if len(points_per_voxel) > 0 else 0,
+            "min_points_per_voxel": int(points_per_voxel.min())
+            if len(points_per_voxel) > 0
+            else 0,
+            "max_points_per_voxel": int(points_per_voxel.max())
+            if len(points_per_voxel) > 0
+            else 0,
             "mean_points_per_voxel": (
-                float(points_per_voxel.float().mean()) if len(points_per_voxel) > 0 else 0.0
+                float(points_per_voxel.float().mean())
+                if len(points_per_voxel) > 0
+                else 0.0
             ),
             "origin": self.origin.tolist(),
         }

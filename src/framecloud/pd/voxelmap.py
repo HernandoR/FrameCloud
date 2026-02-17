@@ -126,8 +126,8 @@ class VoxelMap:
                 is_copy=True,
             )
 
-        origin, voxel_coords, voxel_indices_per_point = cls._build_origin_and_voxel_data(
-            data, voxel_size
+        origin, voxel_coords, voxel_indices_per_point = (
+            cls._build_origin_and_voxel_data(data, voxel_size)
         )
 
         # Handle point cloud reference
@@ -162,6 +162,11 @@ class VoxelMap:
     def voxel_coords(self) -> np.ndarray:
         """Get voxel coordinates as Nx3 array."""
         return self._voxel_coords
+
+    @property
+    def voxel_indices_per_point(self) -> np.ndarray:
+        """Get the voxel index for each point as a 1D array."""
+        return self._voxel_indices_per_point
 
     def get_voxel_centers(self) -> np.ndarray:
         """Get the center coordinates of all voxels.
@@ -241,7 +246,9 @@ class VoxelMap:
             point_voxel_centers = voxel_centers[self._voxel_indices_per_point]
             squared_distances = np.sum((points - point_voxel_centers) ** 2, axis=1)
 
-            sorted_order = np.lexsort((squared_distances, self._voxel_indices_per_point))
+            sorted_order = np.lexsort(
+                (squared_distances, self._voxel_indices_per_point)
+            )
             _, first_occurrence = np.unique(
                 self._voxel_indices_per_point[sorted_order], return_index=True
             )
