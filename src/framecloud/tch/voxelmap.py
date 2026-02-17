@@ -18,7 +18,7 @@ class VoxelMap:
         self,
         voxel_size: float,
         voxel_coords: torch.Tensor,
-        voxel_indice_per_point: torch.Tensor,
+        voxel_indices_per_point: torch.Tensor,
         origin: torch.Tensor,
         pointcloud: PointCloud,
         is_copy: bool = False,
@@ -34,7 +34,7 @@ class VoxelMap:
 
         self.voxel_size = voxel_size
         self.voxel_coords = voxel_coords
-        self.voxel_indice_per_point = voxel_indice_per_point
+        self.voxel_indices_per_point = voxel_indices_per_point
         self.origin = origin
         self.pointcloud = pointcloud
         self._is_copy = is_copy
@@ -67,7 +67,7 @@ class VoxelMap:
             return cls(
                 voxel_size=voxel_size,
                 voxel_coords=torch.empty((0, 3), dtype=torch.int32, device=points.device),
-                voxel_indice_per_point=torch.empty(0, dtype=torch.int64, device=points.device),
+                voxel_indices_per_point=torch.empty(0, dtype=torch.int64, device=points.device),
                 origin=torch.zeros(3, device=points.device),
                 pointcloud=empty_pc,
                 is_copy=True,
@@ -76,7 +76,7 @@ class VoxelMap:
         origin = torch.min(points, dim=0).values
         voxel_coords_all = torch.floor((points - origin) / voxel_size).to(torch.int32)
 
-        unique_voxels, voxel_indice_per_point = torch.unique(
+        unique_voxels, voxel_indices_per_point = torch.unique(
             voxel_coords_all, dim=0, return_inverse=True
         )
 
@@ -90,7 +90,7 @@ class VoxelMap:
         return cls(
             voxel_size=voxel_size,
             voxel_coords=unique_voxels,
-            voxel_indice_per_point=voxel_indice_per_point,
+            voxel_indices_per_point=voxel_indices_per_point,
             origin=origin,
             pointcloud=pc_result,
             is_copy=is_copy_flag,
@@ -112,7 +112,7 @@ class VoxelMap:
         if len(voxel_idx) == 0:
             return torch.tensor([], device=self.voxel_coords.device, dtype=torch.int64)
         return torch.nonzero(
-            self.voxel_indice_per_point == voxel_idx[0], as_tuple=False
+            self.voxel_indices_per_point == voxel_idx[0], as_tuple=False
         ).flatten()
 
     def export_pointcloud(
@@ -126,7 +126,7 @@ class VoxelMap:
             return PointCloud(points=empty)
 
         points = self.pointcloud.points
-        voxel_idx = self.voxel_indice_per_point
+        voxel_idx = self.voxel_indices_per_point
 
         if aggregation_method == "first":
             sorted_order = torch.argsort(voxel_idx)
@@ -196,26 +196,26 @@ class VoxelMap:
         if num_points == 0:
             logger.warning("Empty point cloud.")
             self.voxel_coords = torch.empty((0, 3), dtype=torch.int32, device=points.device)
-            self.voxel_indice_per_point = torch.empty(0, dtype=torch.int64, device=points.device)
+            self.voxel_indices_per_point = torch.empty(0, dtype=torch.int64, device=points.device)
             self.origin = torch.zeros(3, device=points.device)
             return
 
         self.origin = torch.min(points, dim=0).values
         voxel_coords_all = torch.floor((points - self.origin) / self.voxel_size).to(torch.int32)
 
-        unique_voxels, voxel_indice_per_point = torch.unique(
+        unique_voxels, voxel_indices_per_point = torch.unique(
             voxel_coords_all, dim=0, return_inverse=True
         )
 
         self.voxel_coords = unique_voxels
-        self.voxel_indice_per_point = voxel_indice_per_point
+        self.voxel_indices_per_point = voxel_indices_per_point
 
         logger.debug(f"Refreshed torch VoxelMap with {len(unique_voxels)} voxels")
 
     def get_statistics(self) -> dict[str, Any]:
         if self.num_voxels > 0:
             points_per_voxel = torch.bincount(
-                self.voxel_indice_per_point.to(torch.int64),
+                self.voxel_indices_per_point.to(torch.int64),
                 minlength=self.num_voxels,
             )
         else:

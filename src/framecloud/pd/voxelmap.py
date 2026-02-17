@@ -30,7 +30,7 @@ class VoxelMap:
     Attributes:
         voxel_size (float): The size of each voxel (uniform in all dimensions).
         voxel_coords (np.ndarray): Nx3 array of voxel coordinates for each unique voxel.
-        voxel_indice_per_point (np.ndarray): Array mapping each point to its voxel index.
+        voxel_indices_per_point (np.ndarray): Array mapping each point to its voxel index.
         origin (np.ndarray): The origin point of the voxel grid (3D coordinates).
         pointcloud: Reference to the source PointCloud (mutable reference or deep copy).
         is_copy (bool): Whether the pointcloud is a deep copy (immutable from outside).
@@ -40,7 +40,7 @@ class VoxelMap:
         self,
         voxel_size: float,
         voxel_coords: np.ndarray,
-        voxel_indice_per_point: np.ndarray,
+        voxel_indices_per_point: np.ndarray,
         origin: np.ndarray,
         pointcloud: PointCloud,
         is_copy: bool = False,
@@ -50,7 +50,7 @@ class VoxelMap:
         Args:
             voxel_size: Size of each voxel (must be > 0).
             voxel_coords: Nx3 array of unique voxel coordinates.
-            voxel_indice_per_point: Array mapping each point to its voxel index.
+            voxel_indices_per_point: Array mapping each point to its voxel index.
             origin: Origin of the voxel grid (3D coordinates).
             pointcloud: Reference to the PointCloud (either mutable ref or deep copy).
             is_copy: Whether the pointcloud is a deep copy.
@@ -66,7 +66,7 @@ class VoxelMap:
 
         self.voxel_size = voxel_size
         self._voxel_coords = voxel_coords
-        self._voxel_indice_per_point = voxel_indice_per_point
+        self._voxel_indices_per_point = voxel_indices_per_point
         self.origin = origin
         self.pointcloud = pointcloud
         self._is_copy = is_copy
@@ -86,10 +86,10 @@ class VoxelMap:
         voxel_coords_all = np.floor(
             (data[["X", "Y", "Z"]].to_numpy() - origin) / voxel_size
         ).astype(np.int32)
-        unique_voxels, voxel_indice_per_point = np.unique(
+        unique_voxels, voxel_indices_per_point = np.unique(
             voxel_coords_all, axis=0, return_inverse=True
         )
-        return origin, unique_voxels, voxel_indice_per_point
+        return origin, unique_voxels, voxel_indices_per_point
 
     @classmethod
     def from_pointcloud(
@@ -120,13 +120,13 @@ class VoxelMap:
             return cls(
                 voxel_size=voxel_size,
                 voxel_coords=np.empty((0, 3), dtype=np.int32),
-                voxel_indice_per_point=np.empty(0, dtype=np.intp),
+                voxel_indices_per_point=np.empty(0, dtype=np.intp),
                 origin=np.zeros(3),
                 pointcloud=empty_pc,
                 is_copy=True,
             )
 
-        origin, voxel_coords, voxel_indice_per_point = cls._build_origin_and_voxel_data(
+        origin, voxel_coords, voxel_indices_per_point = cls._build_origin_and_voxel_data(
             data, voxel_size
         )
 
@@ -147,7 +147,7 @@ class VoxelMap:
         return cls(
             voxel_size=voxel_size,
             voxel_coords=voxel_coords,
-            voxel_indice_per_point=voxel_indice_per_point,
+            voxel_indices_per_point=voxel_indices_per_point,
             origin=origin,
             pointcloud=pc_ref,
             is_copy=is_copy,
@@ -186,7 +186,7 @@ class VoxelMap:
         voxel_idx = np.where(matches)[0]
         if len(voxel_idx) == 0:
             return np.array([], dtype=np.int32)
-        return np.where(self._voxel_indice_per_point == voxel_idx[0])[0]
+        return np.where(self._voxel_indices_per_point == voxel_idx[0])[0]
 
     def export_pointcloud(
         self,
@@ -231,19 +231,19 @@ class VoxelMap:
         representative_indices = np.zeros(self.num_voxels, dtype=np.int32)
 
         if aggregation_method == "first":
-            sorted_order = np.argsort(self._voxel_indice_per_point, kind="stable")
+            sorted_order = np.argsort(self._voxel_indices_per_point, kind="stable")
             _, first_occurrence = np.unique(
-                self._voxel_indice_per_point[sorted_order], return_index=True
+                self._voxel_indices_per_point[sorted_order], return_index=True
             )
             representative_indices = sorted_order[first_occurrence]
         elif aggregation_method == "nearest_to_center":
             voxel_centers = self.origin + (self._voxel_coords + 0.5) * self.voxel_size
-            point_voxel_centers = voxel_centers[self._voxel_indice_per_point]
+            point_voxel_centers = voxel_centers[self._voxel_indices_per_point]
             squared_distances = np.sum((points - point_voxel_centers) ** 2, axis=1)
 
-            sorted_order = np.lexsort((squared_distances, self._voxel_indice_per_point))
+            sorted_order = np.lexsort((squared_distances, self._voxel_indices_per_point))
             _, first_occurrence = np.unique(
-                self._voxel_indice_per_point[sorted_order], return_index=True
+                self._voxel_indices_per_point[sorted_order], return_index=True
             )
             representative_indices = sorted_order[first_occurrence]
         else:
@@ -254,7 +254,7 @@ class VoxelMap:
 
         if custom_aggregation:
             temp_data = data.copy()
-            temp_data["_voxel_idx"] = self._voxel_indice_per_point
+            temp_data["_voxel_idx"] = self._voxel_indices_per_point
             for attr_name, agg_func in custom_aggregation.items():
                 if attr_name in temp_data.columns:
                     aggregated = temp_data.groupby("_voxel_idx")[attr_name].apply(
@@ -284,11 +284,11 @@ class VoxelMap:
         if num_points == 0:
             logger.warning("Empty point cloud.")
             self._voxel_coords = np.empty((0, 3), dtype=np.int32)
-            self._voxel_indice_per_point = np.empty(0, dtype=np.intp)
+            self._voxel_indices_per_point = np.empty(0, dtype=np.intp)
             self.origin = np.zeros(3)
             return
 
-        self.origin, self._voxel_coords, self._voxel_indice_per_point = (
+        self.origin, self._voxel_coords, self._voxel_indices_per_point = (
             self._build_origin_and_voxel_data(
                 data,
                 self.voxel_size,
@@ -304,7 +304,7 @@ class VoxelMap:
             Dictionary containing statistics.
         """
         points_per_voxel = (
-            np.bincount(self._voxel_indice_per_point, minlength=self.num_voxels)
+            np.bincount(self._voxel_indices_per_point, minlength=self.num_voxels)
             if self.num_voxels > 0
             else np.array([], dtype=np.intp)
         )
