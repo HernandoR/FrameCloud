@@ -34,7 +34,11 @@ permissions:
 jobs:
   test-slow-ubuntu:
     name: Regular Benchmark Tests (Python 3.12)
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "cirun-cpu-ubuntu-runner"]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash -l {0}
