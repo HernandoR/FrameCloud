@@ -87,17 +87,25 @@ jobs:
         run: uv sync --dev
 
       - name: Download regular benchmark artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: benchmark-regular-ubuntu-py3.12-${{ github.sha }}
           path: .
+      - name: extract regular benchmark results
+        run: |
+          if [ -f "benchmark-regular-ubuntu-py3.12-${{ github.sha }}.zip" ]; then
+            unzip benchmark-regular-ubuntu-py3.12-${{ github.sha }}.zip -d reports/benchmarks
+          else
+            echo "Warning: Regular benchmark artifact not found."
+          fi
+          ls -l reports/benchmarks
 
       - name: Run large benchmarks and merge results
         run: just benchmark-large
 
       - name: Upload combined benchmark results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-combined-ubuntu-py3.12-${{ github.sha }}
           path: reports

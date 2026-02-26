@@ -64,6 +64,10 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    for path in [args.primary, args.secondary]:
+        if not path.exists():
+            print(f"Error: Benchmark file not found: {path}")
+            return
 
     primary = _load_benchmark(args.primary)
     secondary = _load_benchmark(args.secondary)
