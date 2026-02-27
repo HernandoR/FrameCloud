@@ -28,6 +28,13 @@ from typing import Any
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+# Configure stdout to use UTF-8 encoding on all platforms (especially Windows)
+# This ensures Unicode characters (✓, ✗) are properly displayed
+if sys.stdout.encoding != "utf-8":
+    import io
+
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
 
 @dataclass
 class PlotConfig:
